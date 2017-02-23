@@ -19,7 +19,8 @@ The Leiden data set is a subset of 956 members of a very old (85+) cohort in Lei
 
 The main question is how blood pressure affects mortality risk in the oldest old. We have reasons to mistrust the MAR assumption in this case. In particular, we worried whether the imputations of blood pressure under MAR would be low enough. The sensitivity analysis explores the effect of artificially lowering the imputed blood pressure by deducting an amount of δ from the values imputed under MAR. In order to preserve the relations between the variables, this needs to be done during the iterations.
 
-Unfortunately we cannot share this data set with you. But we detail the approach below. 
+**Unfortunately we cannot share the Leiden data set with you. But we detail the approach below. **
+
 ---
 
 **1. Open `R` and load the packages `mice`, `lattice` and `survival`.**
@@ -30,7 +31,6 @@ library("lattice")
 library("survival")
 ```
 
----
 
 
 ```{r echo=FALSE}

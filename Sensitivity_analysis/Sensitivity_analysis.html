@@ -130,14 +130,13 @@ $(document).ready(function () {
 <p><strong>The Leiden data set</strong></p>
 <p>The Leiden data set is a subset of 956 members of a very old (85+) cohort in Leiden. Multiple imputation of this data set has been described in Boshuizen et al (1998), Van Buuren et al (1999) and Van Buuren (2012), chapter 7.</p>
 <p>The main question is how blood pressure affects mortality risk in the oldest old. We have reasons to mistrust the MAR assumption in this case. In particular, we worried whether the imputations of blood pressure under MAR would be low enough. The sensitivity analysis explores the effect of artificially lowering the imputed blood pressure by deducting an amount of δ from the values imputed under MAR. In order to preserve the relations between the variables, this needs to be done during the iterations.</p>
-<div id="unfortunately-we-cannot-share-this-data-set-with-you.-but-we-detail-the-approach-below." class="section level2">
-<h2>Unfortunately we cannot share this data set with you. But we detail the approach below.</h2>
+<p><strong>Unfortunately we cannot share the Leiden data set with you. But we detail the approach below. </strong></p>
+<hr />
 <p><strong>1. Open <code>R</code> and load the packages <code>mice</code>, <code>lattice</code> and <code>survival</code>.</strong></p>
 <pre class="r"><code>set.seed(123)
 library(&quot;mice&quot;)
 library(&quot;lattice&quot;)
 library(&quot;survival&quot;)</code></pre>
-<hr />
 <hr />
 <p><strong>2. The leiden data set.</strong></p>
 <pre class="r"><code>summary(leiden)</code></pre>
@@ -507,7 +506,6 @@ cbind(delta, as.data.frame(t(output)))</code></pre>
 <hr />
 <p><strong>- End of Vignette</strong></p>
 <hr />
-</div>
 
 
 
