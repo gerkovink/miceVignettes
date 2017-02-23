@@ -1,0 +1,278 @@
+---
+title: "`mice`: An approach to sensitivity analysis"
+author: "Gerko Vink and Stef van Buuren"
+date: "**Vignette 6 of 6**"
+output: html_document
+---
+
+---
+
+This is an the last vignette in the series. 
+
+The focus of this document is on sensitivity analysis in the context of missing data. The goal of sensitivity analysis is to study the influence that violations of the missingness assumptions have on the obtained inference.
+
+---
+
+**The Leiden data set**
+
+The Leiden data set is a subset of 956 members of a very old (85+) cohort in Leiden. Multiple imputation of this data set has been described in Boshuizen et al (1998), Van Buuren et al (1999) and Van Buuren (2012), chapter 7.
+
+The main question is how blood pressure affects mortality risk in the oldest old. We have reasons to mistrust the MAR assumption in this case. In particular, we worried whether the imputations of blood pressure under MAR would be low enough. The sensitivity analysis explores the effect of artificially lowering the imputed blood pressure by deducting an amount of δ from the values imputed under MAR. In order to preserve the relations between the variables, this needs to be done during the iterations.
+
+---
+
+**1. Open `R` and load the packages `mice`, `lattice` and `survival`.**
+```{r message=FALSE, warning=FALSE}
+set.seed(123)
+library("mice")
+library("lattice")
+library("survival")
+```
+
+---
+
+**2. Load the `leiden.rda` data into your workspace.**
+
+The file leiden.rda needs to reside in your working directory. The function `getwd()` provides the name of the current working directory. The function `setwd()` can be used to change it.
+```{r}
+load("leiden.rda")
+```
+
+---
+
+**3. Study the leiden data set.**
+```{r}
+summary(leiden)
+str(leiden)
+head(leiden)
+tail(leiden)
+```
+
+---
+
+**4. Perform a dry run (using `maxit = 0`) in `mice`. List the number of missing values per variable.**
+```{r}
+ini <- mice(leiden, maxit = 0)
+ini$nmis
+```
+There are 121 missings (`NA`’s) for `rrsyst`, 126 missings for `rrdiast`, 229 missings for `alb`, 232 missings for `chol` and 85 missing values for `mmse`.
+
+---
+
+**5. Study the missing data pattern in more detail using `md.pattern()` and `fluxplot()`. The interest here focusses on imputing systolic blood pressure (`rrsyst`) and diastolic blood pressure (`rrdiast`).**
+```{r}
+md.pattern(leiden)
+fx <- fluxplot(leiden)
+```
+
+Variables with higher outflux are (potentially) the more powerful predictors. Variables with higher influx depend stronger on the imputation model. When points are relatively close to the diagonal, it indicates that influx and outflux are balanced.
+
+The variables in the upper left corner have the more complete information, so the number of missing data problems for this group is relatively small. The variables in the middle have an outflux between 0.5 and 0.8, which is small. Missing data problems are thus more severe, but potentially this group could also contain important variables. The lower (bottom) variables have an outflux with 0.5 or lower, so their predictive power is limited. Also, this group has a higher influx, and, thus, depend more highly on the imputation model.
+
+If you’d like this information in tabulated form, you can simply ask
+```{r}
+fx
+```
+
+---
+
+**6. The cases with and without blood pressure observed have very different survival rates. Show this.**
+
+We can see this easily from the Kaplan-Meier plot.
+```{r}
+km <- survfit(Surv(survda/365, 1-dwa) ~ is.na(rrsyst), data = leiden) 
+plot(km, 
+     lty  = 1, 
+     lwd  = 1.5, 
+     xlab = "Years since intake",
+     ylab = "K-M Survival probability", las=1, 
+     col  = c(mdc(4), mdc(5)), 
+     mark.time = FALSE)
+text(4, 0.7, "BP measured")
+text(2, 0.3, "BP missing")
+```
+
+In the next steps we are going to impute `rrsyst` and `rrdiast` under two scenarios: MAR and MNAR. We will use the delta adjustment technique described in paragraph 7.2.3 in Van Buuren (2012)
+
+---
+
+**7. Create a $\delta$ vector that represent the following adjustment values for mmHg: 0 for MAR, and -5, -10, -15, and -20 for MNAR.**
+```{r}
+delta <- c(0, -5, -10, -15, -20)
+```
+
+
+The recipe for creating MNAR imputations for $\delta \neq 0$ uses the post-processing facility of mice. This allows to change the imputations on the fly by deducting a value of $\delta$ from the values just imputed.
+
+---
+
+**8. Impute the leiden data using the delta adjustment technique. We only have to deduct from `rrsyst`, because `rrdiast` will adapt to the changed `rrsyst` when it is imputed using `rrsyst` as predictor. Store the five imputed scenarios (adjustment) in a list called `imp.all`.**
+```{r}
+imp.all <- vector("list", length(delta))
+post <- ini$post
+for (i in 1:length(delta)){
+  d <- delta[i]
+  cmd <- paste("imp[[j]][,i] <- imp[[j]][,i] +", d)
+  post["rrsyst"] <- cmd
+  imp <- mice(leiden, post = post, maxit = 5, seed = i, print = FALSE)
+  imp.all[[i]] <- imp
+}
+```
+
+---
+
+**9. Inspect the imputations. Compare the imputations for blood pressure under the most extreme scenarios with a box-and-whiskers plot. Is this as expected?**
+
+For the scenario where $\delta = 0$ we can plot the first object from the list. This object is the `mids`-object that considers imputations under no adjustment.
+```{r}
+bwplot(imp.all[[1]])
+```
+
+For the scenario where $\delta = -20$ we can plot the fifth object from the list. This object is the `mids`-object that considers imputations under the largest adjustment.
+```{r}
+bwplot(imp.all[[5]])
+```
+
+We can clearly see that the adjustment has an effect on the imputations for `rrsyst` and, thus, on those for `rrdiast`.
+
+---
+
+**10. Use the density plot for another inspection.**
+
+For the scenario where$\delta = 0$ we can plot the first object from the list. This object is the `mids`-object that considers imputations under no adjustment.
+```{r}
+densityplot(imp.all[[1]], lwd = 3)
+```
+
+For the scenario where $\delta = -20$ we can plot the fifth object from the list. This object is the `mids`-object that considers imputations under the largest adjustment.
+```{r}
+densityplot(imp.all[[5]], lwd = 3)
+```
+
+We can once more clearly see that the adjustment has an effect on the imputations for `rrsyst` and, thus, on those for `rrdiast`.
+
+---
+
+**11. Also create a scatter plot of `rrsyst` and `rrdiast` by imputation number and missingness.**
+```{r}
+xyplot(imp.all[[1]], rrsyst ~ rrdiast | .imp)
+xyplot(imp.all[[5]], rrsyst ~ rrdiast | .imp)
+```
+
+The scatter plot comparison between `rrsyst` and `rrdiast` shows us that the adjustment has an effect on the imputations and that the imputations are lower for the situation where $\delta = -20$.
+
+---
+
+We are now going to perform a complete-data analysis. This involves several steps:
+
+1. Create two categorical variables sbpgp and agegp that divide the observations into groups based on, respectively, systolic blood pressure and age.
+2. Calculate whether person died or not.
+3. Fit a Cox proportional hazards model to estimate the relative mortality risk corrected for sex and age group.
+
+In order to automate this step we should create an expression object that performs these stepd for us. The following object does so:
+```{r}
+cda <- expression(
+  sbpgp <- cut(rrsyst, breaks = c(50, 124, 144, 164, 184, 200, 500)),
+  agegp <- cut(lftanam, breaks = c(85, 90, 95, 110)),
+  dead  <- 1 - dwa,
+  coxph(Surv(survda, dead) ~ C(sbpgp, contr.treatment(6, base = 3)) + strata(sexe, agegp))
+  )
+```
+
+See Van Buuren (2012, pp.186) for more information.
+
+---
+
+**12. Create five fit objects that run the expression `cda` on the five imputed adjustment scenarios. Use function with().**
+```{r}
+fit1 <- with(imp.all[[1]], cda)
+fit2 <- with(imp.all[[2]], cda)
+fit3 <- with(imp.all[[3]], cda)
+fit4 <- with(imp.all[[4]], cda)
+fit5 <- with(imp.all[[5]], cda)
+```
+
+Each fit object contains the five imputed Cox proportional hazards models for the adjustment scenario at hand. For example, the $\delta=-10$ scenario is contained in fit3. 
+```{r}
+fit3
+```
+
+---
+
+**13. Pool the results for each of the five scenarios.**
+```{r}
+r1 <- as.vector(t(exp(summary(pool(fit1))[,c(1, 6:7)])))
+r2 <- as.vector(t(exp(summary(pool(fit2))[,c(1, 6:7)])))
+r3 <- as.vector(t(exp(summary(pool(fit3))[,c(1, 6:7)])))
+r4 <- as.vector(t(exp(summary(pool(fit4))[,c(1, 6:7)])))
+r5 <- as.vector(t(exp(summary(pool(fit5))[,c(1, 6:7)])))
+```
+
+This code grabs the information from the tabulated pooled results that are produced by summary. In order to make sense about these numbers, and to see what exactly is extracted in the above code, laying out the numbers in a proper table may be useful.
+```{r}
+pars <- round(t(matrix(c(r1,r2,r3,r4,r5), nrow = 15)),2)
+pars <- pars[, c(1:6, 13:15)]
+dimnames(pars) <- list(delta, c("<125","lo1","hi1", "125-140","lo2","hi2",
+                                ">200","lo3","hi3"))
+pars
+```
+
+All in all, it seems that even big changes to the imputations (e.g. deducting 20 mmHg) has little influence on the results. This suggests that the results are stable relatively to this type of MNAR-mechanism.
+
+---
+
+**14. Perform sensitivity analysis analysis on the mammalsleep dataset by adding and subtracting some amount from the imputed values for sws. Use delta <- c(8, 6, 4, 2, 0, -2, -4, -6, -8) and investigating the influence on the following regression model:**
+```{r eval=FALSE}
+lm(sws ~ log10(bw) + odi)
+```
+
+Sensitivity analysis is an important tool for investigating the plausibility of the MAR assumption. We again use the $\delta$-adjustment technique described in Van Buuren (2012, p. 185) as an informal, simple and direct method to create imputations under nonignorable models. We do so by simply adding and substracting some amount from the imputations.
+```{r}
+delta <- c(8, 6, 4, 2, 0, -2, -4, -6, -8)
+ini <- mice(mammalsleep[, -1], maxit=0, print=F)
+meth<- ini$meth
+meth["ts"]<- "~ I(sws + ps)"
+pred <- ini$pred
+pred[c("sws", "ps"), "ts"] <- 0
+post <- ini$post
+imp.all.undamped <- vector("list", length(delta))
+for (i in 1:length(delta)) {
+  d <- delta[i]
+  cmd <- paste("imp[[j]][, i] <- imp[[j]][, i] +", d)
+  post["sws"] <- cmd
+  imp <- mice(mammalsleep[, -1], meth=meth, pred=pred, post = post, maxit = 10, seed = i * 22, print=FALSE)
+  imp.all.undamped[[i]] <- imp
+}
+output <- sapply(imp.all.undamped, function(x) pool(with(x, lm(sws ~ log10(bw) + odi)))$qbar)
+cbind(delta, as.data.frame(t(output)))
+```
+
+The estimates for different $\delta$ are not close. A clear trend for the estimates for the `intercept` and for `bw` emerges. Thus, the results are not essentially the same under all specified mechanisms and the outcomes can be deemed sensitive to the assumed mechanism.
+
+However, in this scenario, the $\delta$ adjustment is completely unrealistic. If we look at the descriptive information for observed `sws`
+```{r}
+summary(mammalsleep$sws)
+```
+
+we find that even our smallest adjustment ($\delta=|2|$) already makes up almost a quarter of the average `sws`. Choosing unreasonably large values may always influence your estimates. Therefore; choosing values that are reasonable given your suspicions of an assumed breach of the MAR assumption is vital.
+
+We only used a shift parameter here. In other applications, scale or shape parameters could be more natural (see e.g. Van Buuren (2012), Ch. 3.9.1). The calculations are easily adapted to such cases.
+
+---
+
+**Conclusion**
+
+We have seen that we can create multiple imputations in multivariate missing data problems that imitate deviations from MAR. The analysis used the `post` argument of the `mice()` function as a hook to alter the imputations just after they have been created by a univariate imputation function. The diagnostics shows that the trick works. The relative mortality estimates are however robust to this type of alteration.
+
+---
+
+**References**
+
+Van Buuren, S. (2012), Flexible Imputation of Missing Data. Chapman & Hall/CRC, Boca Raton, FL. ISBN 9781439868249. [CRC Press](https://www.crcpress.com/product/isbn/9781439868249), [Amazon](http://www.amazon.com/Flexible-Imputation-Missing-Interdisciplinary-Statistics/dp/1439868247/ref=sr_1_1?ie=UTF8&qid=1328972069&sr=8-1).
+
+
+---
+
+**- End of Vignette**
+
+---
