@@ -7,7 +7,7 @@ output: html_document
 
 ---
 
-This is an the last vignette in the series. 
+This is the last vignette in the series. 
 
 The focus of this document is on sensitivity analysis in the context of missing data. The goal of sensitivity analysis is to study the influence that violations of the missingness assumptions have on the obtained inference.
 
@@ -19,6 +19,7 @@ The Leiden data set is a subset of 956 members of a very old (85+) cohort in Lei
 
 The main question is how blood pressure affects mortality risk in the oldest old. We have reasons to mistrust the MAR assumption in this case. In particular, we worried whether the imputations of blood pressure under MAR would be low enough. The sensitivity analysis explores the effect of artificially lowering the imputed blood pressure by deducting an amount of δ from the values imputed under MAR. In order to preserve the relations between the variables, this needs to be done during the iterations.
 
+Unfortunately we cannot share this data set with you. But we detail the approach below. 
 ---
 
 **1. Open `R` and load the packages `mice`, `lattice` and `survival`.**
@@ -31,16 +32,14 @@ library("survival")
 
 ---
 
-**2. Load the `leiden.rda` data into your workspace.**
 
-The file leiden.rda needs to reside in your working directory. The function `getwd()` provides the name of the current working directory. The function `setwd()` can be used to change it.
-```{r}
+```{r echo=FALSE}
 load("leiden.rda")
 ```
 
 ---
 
-**3. Study the leiden data set.**
+**2. The leiden data set.**
 ```{r}
 summary(leiden)
 str(leiden)
@@ -50,7 +49,7 @@ tail(leiden)
 
 ---
 
-**4. Perform a dry run (using `maxit = 0`) in `mice`. List the number of missing values per variable.**
+**3. Perform a dry run (using `maxit = 0`) in `mice`. List the number of missing values per variable.**
 ```{r}
 ini <- mice(leiden, maxit = 0)
 ini$nmis
@@ -59,7 +58,7 @@ There are 121 missings (`NA`’s) for `rrsyst`, 126 missings for `rrdiast`, 229 
 
 ---
 
-**5. Study the missing data pattern in more detail using `md.pattern()` and `fluxplot()`. The interest here focusses on imputing systolic blood pressure (`rrsyst`) and diastolic blood pressure (`rrdiast`).**
+**4. Study the missing data pattern in more detail using `md.pattern()` and `fluxplot()`. The interest here focusses on imputing systolic blood pressure (`rrsyst`) and diastolic blood pressure (`rrdiast`).**
 ```{r}
 md.pattern(leiden)
 fx <- fluxplot(leiden)
@@ -76,7 +75,7 @@ fx
 
 ---
 
-**6. The cases with and without blood pressure observed have very different survival rates. Show this.**
+**5. The cases with and without blood pressure observed have very different survival rates. Show this.**
 
 We can see this easily from the Kaplan-Meier plot.
 ```{r}
@@ -96,7 +95,7 @@ In the next steps we are going to impute `rrsyst` and `rrdiast` under two scenar
 
 ---
 
-**7. Create a $\delta$ vector that represent the following adjustment values for mmHg: 0 for MAR, and -5, -10, -15, and -20 for MNAR.**
+**6. Create a $\delta$ vector that represent the following adjustment values for mmHg: 0 for MAR, and -5, -10, -15, and -20 for MNAR.**
 ```{r}
 delta <- c(0, -5, -10, -15, -20)
 ```
@@ -106,7 +105,7 @@ The recipe for creating MNAR imputations for $\delta \neq 0$ uses the post-proce
 
 ---
 
-**8. Impute the leiden data using the delta adjustment technique. We only have to deduct from `rrsyst`, because `rrdiast` will adapt to the changed `rrsyst` when it is imputed using `rrsyst` as predictor. Store the five imputed scenarios (adjustment) in a list called `imp.all`.**
+**7. Impute the leiden data using the delta adjustment technique. We only have to deduct from `rrsyst`, because `rrdiast` will adapt to the changed `rrsyst` when it is imputed using `rrsyst` as predictor. Store the five imputed scenarios (adjustment) in a list called `imp.all`.**
 ```{r}
 imp.all <- vector("list", length(delta))
 post <- ini$post
@@ -121,7 +120,7 @@ for (i in 1:length(delta)){
 
 ---
 
-**9. Inspect the imputations. Compare the imputations for blood pressure under the most extreme scenarios with a box-and-whiskers plot. Is this as expected?**
+**8. Inspect the imputations. Compare the imputations for blood pressure under the most extreme scenarios with a box-and-whiskers plot. Is this as expected?**
 
 For the scenario where $\delta = 0$ we can plot the first object from the list. This object is the `mids`-object that considers imputations under no adjustment.
 ```{r}
@@ -137,7 +136,7 @@ We can clearly see that the adjustment has an effect on the imputations for `rrs
 
 ---
 
-**10. Use the density plot for another inspection.**
+**9. Use the density plot for another inspection.**
 
 For the scenario where$\delta = 0$ we can plot the first object from the list. This object is the `mids`-object that considers imputations under no adjustment.
 ```{r}
@@ -153,7 +152,7 @@ We can once more clearly see that the adjustment has an effect on the imputation
 
 ---
 
-**11. Also create a scatter plot of `rrsyst` and `rrdiast` by imputation number and missingness.**
+**10. Also create a scatter plot of `rrsyst` and `rrdiast` by imputation number and missingness.**
 ```{r}
 xyplot(imp.all[[1]], rrsyst ~ rrdiast | .imp)
 xyplot(imp.all[[5]], rrsyst ~ rrdiast | .imp)
@@ -183,7 +182,7 @@ See Van Buuren (2012, pp.186) for more information.
 
 ---
 
-**12. Create five fit objects that run the expression `cda` on the five imputed adjustment scenarios. Use function with().**
+**11. Create five fit objects that run the expression `cda` on the five imputed adjustment scenarios. Use function with().**
 ```{r}
 fit1 <- with(imp.all[[1]], cda)
 fit2 <- with(imp.all[[2]], cda)
@@ -199,7 +198,7 @@ fit3
 
 ---
 
-**13. Pool the results for each of the five scenarios.**
+**12. Pool the results for each of the five scenarios.**
 ```{r}
 r1 <- as.vector(t(exp(summary(pool(fit1))[,c(1, 6:7)])))
 r2 <- as.vector(t(exp(summary(pool(fit2))[,c(1, 6:7)])))
@@ -221,7 +220,7 @@ All in all, it seems that even big changes to the imputations (e.g. deducting 20
 
 ---
 
-**14. Perform sensitivity analysis analysis on the mammalsleep dataset by adding and subtracting some amount from the imputed values for sws. Use delta <- c(8, 6, 4, 2, 0, -2, -4, -6, -8) and investigating the influence on the following regression model:**
+**13. Perform sensitivity analysis analysis on the mammalsleep dataset by adding and subtracting some amount from the imputed values for sws. Use delta <- c(8, 6, 4, 2, 0, -2, -4, -6, -8) and investigating the influence on the following regression model:**
 ```{r eval=FALSE}
 lm(sws ~ log10(bw) + odi)
 ```
