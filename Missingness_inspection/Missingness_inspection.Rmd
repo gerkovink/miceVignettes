@@ -1,5 +1,5 @@
 ---
-title: "`mice`: Inspecting the missingness relations"
+title: "`mice`: The imputation and nonresponse models"
 author: "Gerko Vink and Stef van Buuren"
 date: "**Vignette 3 of 6**"
 output: html_document
@@ -105,6 +105,76 @@ Investigating univariate properties by using functions such as `summary()`, may 
 ```{r}
 summary(with(imp1, mean(tv)))
 ```
+
+---
+
+###The importance of the imputation model
+The `mammalsleep` dataset is part of `mice`. It contains the Allison and Cicchetti (1976) data for mammalian species. To learn more about this data, type
+```{r}
+help(mammalsleep)
+```
+
+**9. Get an overview of the data.** Find information about the size of the data, the variables measured and the amount of missingness.
+```{r}
+head(mammalsleep)
+summary(mammalsleep)
+str(mammalsleep)
+```
+As we have seen before, the function `md.pattern()` can be used to display all different missing data patterns. How many different missing data patterns are present in the `mammalsleep` dataframe and which pattern occurs most frequently in the data? 
+```{r}
+md.pattern(mammalsleep)
+```
+Answer: 8 patterns in total, with the pattern where everything is observed occuring the most (42 times).
+
+**10. Generate five imputed datasets with the default method `pmm`. Give the algorithm 10 iterations. **
+```{r, cache=TRUE}
+imp <- mice(mammalsleep, maxit = 10, print=F)
+```
+Inspect the trace lines
+```{r}
+plot(imp)
+```
+
+**11. Perform a regression analysis on the imputed dataset** with
+`sws` as dependent variable and `log(bw)` and 
+`odi` as independent variables.
+```{r}
+fit1 <- with(imp, lm(sws ~ log10(bw) + odi), print=F)
+```
+
+**12. Pool the regression analysis and inspect the pooled analysis.**
+```{r}
+summary(pool(fit1))
+```
+
+The `fmi` and `lambda` are much to low. This is due to `species` being included in the imputation model. Because there are 62 species and mice automatically converts factors (categorical variables) to dummy variables, each species is modeled by its own imputation model. 
+
+**13. Impute `mammalsleep` again, but now exclude `species` from the data. Name the new imputed dataset `impnew`.**
+```{r, cache=TRUE}
+impnew <- mice(mammalsleep[ , -1], maxit = 10, print = F)
+```
+
+**14. Compute and pool the regression analysis again. **
+```{r}
+fit2 <- with(impnew, lm(sws ~ log10(bw) + odi))
+summary(pool(fit2))
+```
+
+Note that the `fmi` and `lambda` have dramatically decreased. The imputation model has been greatly improved. 
+
+**15. Plot the trace lines for `impnew`**
+```{r}
+plot(impnew)
+```
+
+Even though the fraction of information missing due to nonresponse (fmi) and the relative increase in variance due to nonresponse (lambda) are nice and low, the convergence turns out to be a real problem. The reason is the structure in the data. Total sleep (`ts`) is the sum of paradoxical sleep (`ps`) and short wave sleep (`sws`). This relation is ignored in the imputations, but it is necessary to take this relation into account. `mice` offers a routine called passive imputation, which allows users to take transformations, combinations and recoded variables into account when imputing their data. 
+
+We explain passive imputation in detail in the [this vignette](https://gerkovink.github.io/miceVignettes/Passive_Post_processing/Passive_imputation_post_processing.html).
+
+###Conclusion
+We have seen that the practical execution of multiple imputation and pooling is straightforward with the `R` package `mice`. The package is designed to allow you to assess and control the imputations themselves, the convergence of the algorithm and the distributions and multivariate relations of the observed and imputed data. 
+
+It is important to 'gain' this control as a user. After all, we are imputing values and we aim to properly adress the uncertainty about the missingness problem. 
 
 ---
 
