@@ -1,7 +1,5 @@
 # miceVignettes
 
----
-
 A detailed series of vignettes that walk you through solving realistic inference problems with [`mice`](https://cran.r-project.org/web/packages/mice/index.html). 
 
 We suggest going through these vignettes in the following order
