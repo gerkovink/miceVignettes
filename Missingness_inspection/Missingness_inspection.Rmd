@@ -114,6 +114,8 @@ The `mammalsleep` dataset is part of `mice`. It contains the Allison and Cicchet
 help(mammalsleep)
 ```
 
+---
+
 **9. Get an overview of the data.** Find information about the size of the data, the variables measured and the amount of missingness.
 ```{r}
 head(mammalsleep)
@@ -126,6 +128,8 @@ md.pattern(mammalsleep)
 ```
 Answer: 8 patterns in total, with the pattern where everything is observed occuring the most (42 times).
 
+---
+
 **10. Generate five imputed datasets with the default method `pmm`. Give the algorithm 10 iterations. **
 ```{r, cache=TRUE}
 imp <- mice(mammalsleep, maxit = 10, print=F)
@@ -135,6 +139,8 @@ Inspect the trace lines
 plot(imp)
 ```
 
+---
+
 **11. Perform a regression analysis on the imputed dataset** with
 `sws` as dependent variable and `log(bw)` and 
 `odi` as independent variables.
@@ -142,17 +148,23 @@ plot(imp)
 fit1 <- with(imp, lm(sws ~ log10(bw) + odi), print=F)
 ```
 
+---
+
 **12. Pool the regression analysis and inspect the pooled analysis.**
 ```{r}
 summary(pool(fit1))
 ```
 
-The `fmi` and `lambda` are much to low. This is due to `species` being included in the imputation model. Because there are 62 species and mice automatically converts factors (categorical variables) to dummy variables, each species is modeled by its own imputation model. 
+The `fmi` and `lambda` are much too high. This is due to `species` being included in the imputation model. Because there are 62 species and mice automatically converts factors (categorical variables) to dummy variables, each species is modeled by its own imputation model. 
+
+---
 
 **13. Impute `mammalsleep` again, but now exclude `species` from the data. Name the new imputed dataset `impnew`.**
 ```{r, cache=TRUE}
 impnew <- mice(mammalsleep[ , -1], maxit = 10, print = F)
 ```
+
+---
 
 **14. Compute and pool the regression analysis again. **
 ```{r}
@@ -161,6 +173,8 @@ summary(pool(fit2))
 ```
 
 Note that the `fmi` and `lambda` have dramatically decreased. The imputation model has been greatly improved. 
+
+---
 
 **15. Plot the trace lines for `impnew`**
 ```{r}
