@@ -595,6 +595,16 @@ R</code></pre>
 <pre class="r"><code>fit1 &lt;- with(imp, lm(sws ~ log10(bw) + odi), print=F)</code></pre>
 <hr />
 <p><strong>12. Pool the regression analysis and inspect the pooled analysis.</strong></p>
+<pre class="r"><code>pool(fit1)</code></pre>
+<pre><code>## Class: mipo    m = 5 
+##               estimate      ubar         b         t dfcom       df
+## (Intercept) 11.1957885 0.9247668 2.3513991 3.7464458    59 4.699980
+## log10(bw)   -0.9878930 0.1305488 0.2237377 0.3990341    59 5.998398
+## odi         -0.6483951 0.1156222 0.1812476 0.3331193    59 6.368086
+##                  riv    lambda       fmi
+## (Intercept) 3.051233 0.7531616 0.8172756
+## log10(bw)   2.056589 0.6728379 0.7455535
+## odi         1.881103 0.6529107 0.7270110</code></pre>
 <pre class="r"><code>summary(pool(fit1))</code></pre>
 <pre><code>##               estimate std.error statistic       df      p.value
 ## (Intercept) 11.1957885 1.9355738  5.784222 4.699980 0.0009469718
@@ -607,7 +617,17 @@ R</code></pre>
 <hr />
 <p><strong>14. Compute and pool the regression analysis again. </strong></p>
 <pre class="r"><code>fit2 &lt;- with(impnew, lm(sws ~ log10(bw) + odi))
-summary(pool(fit2))</code></pre>
+pool(fit2)</code></pre>
+<pre><code>## Class: mipo    m = 5 
+##               estimate       ubar           b          t dfcom       df
+## (Intercept) 11.4309943 0.62673697 0.035841139 0.66974633    59 50.64064
+## log10(bw)   -1.1479382 0.08847611 0.003327883 0.09246957    59 53.27391
+## odi         -0.8385108 0.07835995 0.004594827 0.08387375    59 50.43649
+##                    riv     lambda        fmi
+## (Intercept) 0.06862427 0.06421740 0.09910821
+## log10(bw)   0.04513602 0.04318674 0.07719232
+## odi         0.07036492 0.06573919 0.10070633</code></pre>
+<pre class="r"><code>summary(pool(fit2))</code></pre>
 <pre><code>##               estimate std.error statistic       df      p.value
 ## (Intercept) 11.4309943 0.8183803 13.967827 50.64064 0.0000000000
 ## log10(bw)   -1.1479382 0.3040881 -3.775019 53.27391 0.0004041811

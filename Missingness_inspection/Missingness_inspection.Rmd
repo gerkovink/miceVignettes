@@ -152,6 +152,7 @@ fit1 <- with(imp, lm(sws ~ log10(bw) + odi), print=F)
 
 **12. Pool the regression analysis and inspect the pooled analysis.**
 ```{r}
+pool(fit1)
 summary(pool(fit1))
 ```
 
@@ -169,6 +170,7 @@ impnew <- mice(mammalsleep[ , -1], maxit = 10, print = F)
 **14. Compute and pool the regression analysis again. **
 ```{r}
 fit2 <- with(impnew, lm(sws ~ log10(bw) + odi))
+pool(fit2)
 summary(pool(fit2))
 ```
 
