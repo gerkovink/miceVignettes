@@ -108,7 +108,7 @@ summary(with(imp1, mean(tv)))
 
 ---
 
-###The importance of the imputation model
+### The importance of the imputation model
 The `mammalsleep` dataset is part of `mice`. It contains the Allison and Cicchetti (1976) data for mammalian species. To learn more about this data, type
 ```{r}
 help(mammalsleep)
@@ -187,7 +187,7 @@ Even though the fraction of information missing due to nonresponse (fmi) and the
 
 We explain passive imputation in detail in the [this vignette](https://gerkovink.github.io/miceVignettes/Passive_Post_processing/Passive_imputation_post_processing.html).
 
-###Conclusion
+### Conclusion
 We have seen that the practical execution of multiple imputation and pooling is straightforward with the `R` package `mice`. The package is designed to allow you to assess and control the imputations themselves, the convergence of the algorithm and the distributions and multivariate relations of the observed and imputed data. 
 
 It is important to 'gain' this control as a user. After all, we are imputing values and we aim to properly adress the uncertainty about the missingness problem. 
