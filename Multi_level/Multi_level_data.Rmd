@@ -62,7 +62,7 @@ We are going to work with the popularity data from Joop Hox (2010). The variable
 
 ---
 
-#####Inspection of the incomplete data
+##### Inspection of the incomplete data
 
 ---
 
@@ -247,7 +247,7 @@ By simply forcing the algorithm to use the class variable during estimation we a
 
 ---
 
-#####Checking Convergence of the imputations
+##### Checking Convergence of the imputations
 
 ---
 
