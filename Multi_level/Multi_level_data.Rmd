@@ -475,7 +475,7 @@ pred["texp", ] <- c(0, -2, 1, 1, 0, 1, 1)  #2lonly.mean
 pred["popular", ] <- c(0, -2, 2, 2, 1, 0, 2)  #2l.pan
 pred["popteach", ] <- c(0, -2, 2, 2, 1, 2, 0)  #2l.pan
 meth <- ini$meth
-meth <- c("", "", "2l.norm", "logreg", "2lonly.mean2", "2l.pan", "2l.pan")
+meth <- c("", "", "2l.norm", "logreg", "2lonly.mean", "2l.pan", "2l.pan")
 imp7 <- mice(popNCR3, pred = pred, meth = meth, print = FALSE)
 ```
 
