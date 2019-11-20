@@ -67,18 +67,14 @@ We are going to work with the popularity data from Joop Hox (2010). The variable
 ---
 
 **1. Open the `popular.RData` workspace.**
-From your working directory, run
-```{r cache = TRUE}
-load("popular.RData")
+A workspace with complete and incomplete versions of the popularity data [can be obtained here](https://www.gerkovink.com/mimp/popular.RData) or can be loaded into the Global Environment by running:
+```{r eval = "FALSE"}
+con <- url("https://www.gerkovink.com/mimp/popular.RData")
+load(con)
 ```
-or specify the path. For example,
-```{r eval = FALSE}
-load("C:/Users/youraccount/Documents/popular.RData")
-```
-Alternatively, just click the `popular.RData` file to open the data. 
 
 This workspace contains several datasets and functions that, when loaded, are available to you in R. If you’d like to see what is inside: run the following code
-```{r cache = TRUE}
+```{r cache = FALSE}
 ls()
 ```
 
@@ -88,7 +84,7 @@ The dataset `popNCR` is a variation on the Hox (2010) data, where the missingnes
 
 **2. Check with the functions `head()`, `dim()` - alternatively one could use `nrow()` and `ncol()` instead of `dim()` - and `summary()` how large the dataset is, of which variables the data frame consists and if there are missing values in a variable.**
 
-```{r cache = TRUE}
+```{r cache = FALSE}
 head(popNCR)
 dim(popNCR)
 nrow(popNCR)
@@ -101,13 +97,13 @@ The data set has 2000 rows and 7 columns (variables). The variables `extrav`, `s
 
 **3. As we have seen before, the function `md.pattern()` is used to display all different missing data patterns. How many different missing data patterns are present in the `popNCR` dataframe and which patterns occur most frequently in the data? Also find out how many patterns we would observe when variable `texp` (teacher experience) is not considered.**
 
-```{r cache = TRUE}
+```{r cache = FALSE}
 md.pattern(popNCR)
 ```
 There are 32 unique patterns. The pattern where everything is observed and the pattern where only texp is missing occur most frequently.
 
 If we omit texp, then the following pattern matrix is realized:
-```{r cache = TRUE}
+```{r cache = FALSE}
 md.pattern(popNCR[ , -5])
 ```
 Without texp, there are only 16 patterns.
@@ -117,11 +113,11 @@ Without texp, there are only 16 patterns.
 **4. Let’s focus more precisely on the missing data patterns. Does the missing data of `popular` depend on `popteach`? One could for example check this by making a histogram of `popteach` separately for the pupils with known popularity and missing popularity.**
 
 In R the missingness indicator
-```{r cache = TRUE}
+```{r cache = FALSE}
 is.na(popNCR$popular)
 ```
 is a dummy variable of the same length as `popular` with value 0 (`FALSE`) for observed pupil popularity and 1 (`TRUE`) for missing pupil popularity. A histogram can be made with the function `histogram()`. The code for a conditional histogram of `popteach` given the missingness indicator for popular is
-```{r cache = TRUE}
+```{r cache = FALSE}
 histogram(~ popteach | is.na(popular), data=popNCR)
 ```
 
@@ -131,17 +127,17 @@ We do see that the histogram for the missing `popular` (`TRUE`) is further to th
 
 **5. Does the missingness of the other incomplete variables depend on `popteach`? If yes, what is the direction of the relation?**
 
-```{r cache = TRUE}
+```{r cache = FALSE}
 histogram(~ popteach | is.na(sex), data = popNCR)  
 ```
 
 There seems to be a left-tailed relation between `popteach` and the missingness in `sex`.
-```{r cache = TRUE}
+```{r cache = FALSE}
 histogram(~ popteach | is.na(extrav), data = popNCR)
 ```
 
 There also seems to be a left-tailed relation between `popteach` and the missingness in `extrav`.
-```{r cache = TRUE}
+```{r cache = FALSE}
 histogram(~ popteach | is.na(texp), data = popNCR)
 ```
 
@@ -151,7 +147,7 @@ There seems to be no observable relation between `popteach` and the missingness 
 
 **6. Find out if the missingness in teacher popularity depends on pupil popularity.**
 
-```{r cache = TRUE}
+```{r cache = FALSE}
 histogram(~ popular | is.na(popteach), data = popNCR)
 ```
 
@@ -161,7 +157,7 @@ Yes: there is a dependency. The relation seems to be right-tailed.
 
 **7. Have a look at the intraclass correlation (ICC) for the incomplete variables `popular`, `popteach` and `texp`.**
 
-```{r cache = TRUE}
+```{r cache = FALSE}
 icc(aov(popular ~ as.factor(class), data = popNCR))
 icc(aov(popteach ~ class, data = popNCR))
 icc(aov(texp ~ class, data = popNCR))
@@ -177,7 +173,7 @@ YES! There is a strong cluster structure going on. If we ignore the clustering i
 ---
 
 **8. Impute the `popNCR` dataset with `mice` using imputation method `norm` for `popular`, `popteach`, `texp` and `extrav`. Exclude `class` as a predictor ***for all variables***. Call the `mids`-object `imp1`.**
-```{r cache = TRUE}
+```{r cache = FALSE}
 ini <- mice(popNCR, maxit = 0)
 meth <- ini$meth
 meth
@@ -194,7 +190,7 @@ imp1 <- mice(popNCR, meth = meth, pred = pred, print = FALSE)
 ---
 
 **9. Compare the means of the variables in the first imputed dataset and in the incomplete dataset.**
-```{r cache = TRUE}
+```{r cache = FALSE}
 summary(complete(imp1))
 summary(popNCR)
 ```
@@ -208,7 +204,7 @@ Yes, we can see this in the imputed data: teacher experience increases slightly 
 ---
 
 **10. Compare the ICC’s of the variables in the first imputed dataset with those in the incomplete dataset (use `popular`, `popteach` and `texp`). Make a notation of the ICC’s after imputation.**
-```{r cache = TRUE}
+```{r cache = FALSE}
 data.frame(vars = names(popNCR[c(6, 7, 5)]), 
            observed = c(icc(aov(popular ~ class, popNCR)), 
                         icc(aov(popteach ~ class, popNCR)), 
@@ -221,7 +217,7 @@ data.frame(vars = names(popNCR[c(6, 7, 5)]),
 ---
 
 **11. Now impute the `popNCR` dataset again with `mice` using imputation method `norm` for `popular`, `popteach`, `texp` and `extrav`, but now include `class` as a predictor ***for all variables***. Call the `mids`-object `imp2`.**
-```{r cache = TRUE}
+```{r cache = FALSE}
 pred <- ini$pred
 pred[, "pupil"] <- 0
 imp2 <- mice(popNCR, meth = meth, pred = pred, print = FALSE)
@@ -230,7 +226,7 @@ imp2 <- mice(popNCR, meth = meth, pred = pred, print = FALSE)
 ---
 
 **12. Compare the ICC’s of the variables in the first imputed dataset from `imp2` with those of `imp1` and the incomplete dataset (use `popular`, `popteach` and `texp`). Make a notation of the ICC’s after imputation.**
-```{r cache = TRUE}
+```{r cache = FALSE}
 data.frame(vars = names(popNCR[c(6, 7, 5)]), 
            observed  = c(icc(aov(popular ~ class, popNCR)), 
                          icc(aov(popteach ~ class, popNCR)), 
@@ -252,20 +248,20 @@ By simply forcing the algorithm to use the class variable during estimation we a
 ---
 
 **13. Inspect the trace lines for the variables `popular`, `texp` and `extrav`.**
-```{r cache = TRUE}
+```{r cache = FALSE}
 plot(imp2, c("popular", "texp", "popteach"))
 ```
 
 ---
 
 **14. Add another 10 iterations and inspect the trace lines again. What do you observe with respect to the convergence of the sampler?**
-```{r cache = TRUE}
+```{r cache = FALSE}
 imp3 <- mice.mids(imp2, maxit = 10)
 plot(imp3, c("popular", "texp", "popteach"))
 ```
 
 It seems OK. Adding another 20 iterations confirms this.
-```{r cache = TRUE}
+```{r cache = FALSE}
 imp3b <- mice.mids(imp3, maxit = 20, print = FALSE)
 plot(imp3b, c("popular", "texp", "popteach"))
 ```
@@ -281,17 +277,17 @@ Several plotting methods based on the package `lattice` for Trellis graphics are
 **15. Plot the densities of the observed and imputed data (use `imp2`) with the function `densityplot()`.**
 
 To obtain all densities of the different imputed datasets use
-```{r cache = TRUE}
+```{r cache = FALSE}
 densityplot(imp2)
 ```
 
 To obtain just the densities for popular one can use
-```{r cache = TRUE}
+```{r cache = FALSE}
 densityplot(imp2, ~ popular)
 ```
 
 or
-```{r cache = TRUE}
+```{r cache = FALSE}
 densityplot(imp2, ~ popular | .imp)
 ```
 
@@ -300,26 +296,26 @@ The latter case results in a conditional plot (conditional on the different impu
 ---
 
 **16. Have a look at the imputed dataset by asking the first 15 rows of the first completed dataset for `imp2`. What do you think of the imputed values?**
-```{r cache = TRUE}
+```{r cache = FALSE}
 complete(imp2, 1)[1:15, ]
 ```
 
 or, alternatively
-```{r cache = TRUE}
+```{r cache = FALSE}
 head(complete(imp2, 1), n = 15)
 ```
 
 ---
 
 **17. Impute the `popNCR` data once more where you use predictive mean matching and include all variables as predictors. Name the object `imp4`.**
-```{r cache = TRUE}
+```{r cache = FALSE}
 imp4 <- mice(popNCR)
 ```
 
 ---
 
 **18. Plot again the densities of the observed and imputed data with the function `densityplot()`, but now use `imp4`. Is there a difference between the imputations obtained with `pmm` and `norm` and can you explain this?**
-```{r cache = TRUE}
+```{r cache = FALSE}
 densityplot(imp4)
 ```
 
@@ -334,7 +330,7 @@ See **Exercise 20** for the solution.
 ---
 
 **20. Finally, compare the ICC’s of the imputations to the ICC’s in the original data. The original data can be found in dataset `popular`. What do you conclude?**
-```{r cache = TRUE}
+```{r cache = FALSE}
 data.frame(vars      = names(popNCR[c(6, 7, 5)]), 
            observed  = c(icc(aov(popular ~ class, popNCR)), 
                          icc(aov(popteach ~ class, popNCR)), 
@@ -372,39 +368,39 @@ The latter two methods aggregate level 1 variables at level 2, but in combinatio
 ---
 
 **21. Impute the variable `popular` by means of `2l.norm`. Use dataset `popNCR2`.**
-```{r cache = TRUE}
+```{r cache = FALSE}
 ini <- mice(popNCR2, maxit = 0)
 pred <- ini$pred
 pred["popular", ] <- c(0, -2, 2, 2, 2, 0, 2)
 ```
 
 In the predictor matrix, `-2` denotes the class variable, a value `1` indicates a fixed effect and a value `2` indicates a random effect. However, the currently implemented algorithm does not handle predictors that are specified as fixed effects (type = `1`). When using `mice.impute.2l.norm()`, the current advice is to specify all predictors as random effects (type = ``2).
-```{r cache = TRUE}
+```{r cache = FALSE}
 meth <- ini$meth
 meth <- c("", "", "", "", "", "2l.norm", "")
 imp5 <- mice(popNCR2, pred = pred, meth=meth, print = FALSE)
 ```
 
 **22. Inspect the imputations. Did the algorithm converge?**
-```{r cache = TRUE}
+```{r cache = FALSE}
 densityplot(imp5, ~popular, ylim = c(0, 0.35), xlim = c(-1.5, 10))
 densityplot(imp4, ~popular, ylim = c(0, 0.35), xlim = c(-1.5, 10))
 ```
 
 The imputations generated with `2l.norm` are very similar to the ones obtained by `pmm` with `class` as a fixed effect. If we plot the first imputed dataset from `imp4` and `imp5` against the original (true) data:
-```{r cache = TRUE}
+```{r cache = FALSE}
 plot(density(popular$popular))  #true data 
 lines(density(complete(imp5)$popular), col = "red", lwd = 2)  #2l.norm
 lines(density(complete(imp4)$popular), col = "green", lwd = 2)  #PMM
 ```
 
 We can see that the imputations are very similar. When studying the convergence
-```{r cache = TRUE}
+```{r cache = FALSE}
 plot(imp5)
 ```
 
 we conclude that it may be wise to run additional iterations. Convergence is not apparent from this plot.
-```{r cache = TRUE}
+```{r cache = FALSE}
 imp5.b <- mice.mids(imp5, maxit = 10, print = FALSE)
 plot(imp5.b)
 ```
@@ -414,7 +410,7 @@ After running another 10 iterations, convergence is more convincing.
 ---
 
 **23. In the original data, the group variances for `popular` are homogeneous. Use `2l.pan` to impute the variable `popular` in dataset `popNCR2`. Inspect the imputations. Did the algorithm converge?**
-```{r cache = TRUE}
+```{r cache = FALSE}
 ini <- mice(popNCR2, maxit = 0)
 pred <- ini$pred
 pred["popular", ] <- c(0, -2, 2, 2, 1, 0, 2)
@@ -424,12 +420,12 @@ imp6 <- mice(popNCR2, pred = pred, meth = meth, print = FALSE)
 ```
 
 Let us create the densityplot for `imp6`
-```{r cache = TRUE}
+```{r cache = FALSE}
 densityplot(imp6, ~popular, ylim = c(0, 0.35), xlim = c(-1.5, 10))
 ```
 
 and compare it to the one for `imp4`
-```{r cache = TRUE}
+```{r cache = FALSE}
 densityplot(imp4, ~popular, ylim = c(0, 0.35), xlim = c(-1.5, 10))
 ```
 
@@ -441,13 +437,13 @@ lines(density(complete(imp4)$popular), col = "green", lwd = 2)  #PMM
 ```
 
 We can see that the imputations are very similar. When studying the convergence
-```{r cache = TRUE}
+```{r cache = FALSE}
 plot(imp6)
 ```
 
 we conclude that it may be wise to run additional iterations. Convergence is not apparent from this plot.
 
-```{r cache = TRUE}
+```{r cache = FALSE}
 imp6.b <- mice.mids(imp5, maxit = 10, print = FALSE)
 plot(imp6.b)
 ```
@@ -466,7 +462,7 @@ sex |	logreg
 popular	| 2l.pan
 popteach |	2l.pan
 
-```{r cache = TRUE}
+```{r cache = FALSE}
 ini <- mice(popNCR3, maxit = 0)
 pred <- ini$pred
 pred["extrav", ] <- c(0, -2, 0, 2, 2, 2, 2)  #2l.norm
@@ -482,12 +478,12 @@ imp7 <- mice(popNCR3, pred = pred, meth = meth, print = FALSE)
 ---
 
 **25. Evaluate the imputations by means of convergence, distributions and plausibility.**
-```{r cache = TRUE}
+```{r cache = FALSE}
 densityplot(imp7)
 ```
 
 Given what we know about the missingness, the imputed densities look very reasonable.
-```{r cache = TRUE}
+```{r cache = FALSE}
 plot(imp7)
 ```
 
@@ -496,19 +492,19 @@ Convergence has not yet been reached. more iterations are advisable.
 ---
 
 **26. Repeat the same imputations as in the previous step, but now use `pmm` for everything.**
-```{r cache = TRUE}
+```{r cache = FALSE}
 pmmdata <- popNCR3
 pmmdata$class <- as.factor(popNCR3$class)
 imp8 <- mice(pmmdata, m = 5, print = FALSE)
 ```
 
 With `pmm`, the imputations are very similar and conform to the shape of the observed data.
-```{r cache = TRUE}
+```{r cache = FALSE}
 densityplot(imp8)
 ```
 
 When looking at the convergence of `pmm`, more iterations are advisable:
-```{r cache = TRUE}
+```{r cache = FALSE}
 plot(imp8)
 ```
 

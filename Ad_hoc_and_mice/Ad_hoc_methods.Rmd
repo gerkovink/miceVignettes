@@ -15,7 +15,7 @@ No previous experience with `R` is required.
 
 ---
 
-#####Working with mice
+##### Working with mice
 
 ---
 
@@ -37,7 +37,7 @@ install.packages("mice")
 **2.  Inspect the incomplete data**
 
 The `mice` package contains several datasets. Once the package is loaded, these datasets can be used. Have a look at the `nhanes` dataset (Schafer, 1997, Table 6.14) by typing
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 nhanes
 ```
  The `nhanes` dataset is a small data set with non-monotone
@@ -46,7 +46,7 @@ nhanes
  and *cholesterol (mg/dL)*.
 
 To learn more about the data, use one of the two following help commands:
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 help(nhanes)
 ?nhanes
 ```
@@ -55,7 +55,7 @@ help(nhanes)
 
 **3.  Get an overview of the data by the `summary()` command:**
 
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 summary(nhanes)
 ```
 
@@ -64,14 +64,14 @@ summary(nhanes)
 **4.  Inspect the missing data pattern**
 
  Check the missingness pattern for the `nhanes` dataset
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 md.pattern(nhanes)
 ```
 The missingness pattern shows that there are 27 missing values in total: 10 for `chl` , 9 for `bmi` and 8 for `hyp`. Moreover, there are thirteen completely observed rows, four rows with 1 missing, one row with 2 missings and seven rows with 3 missings. Looking at the missing data pattern is always useful (but may be difficult for datasets with many variables). It can give you an indication on how much information is missing and how the missingness is distributed.
 
 ---
 
-#####Ad Hoc imputation methods
+##### Ad Hoc imputation methods
 
 ---
 
@@ -95,11 +95,11 @@ The imputations are now done. As you can see, the algorithm ran for 1 iteration 
 
 **7. Explore the imputed data with the `complete()` function. What do you think the variable means are? What happened to the regression equation after imputation?**
 
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 complete(imp)
 ```
 We see the repetitive numbers `26.5625` for `bmi`, `1.2352594` for `hyp`, and `191.4` for `chl`. These can be confirmed as the means of the respective variables (columns):
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 colMeans(nhanes, na.rm = TRUE)
 ```
 We saw during the inspection of the missing data pattern that variable `age` has no missings. Therefore nothing is imputed for `age` because we would not want to alter the observed (and bonafide) values. 
@@ -127,7 +127,7 @@ The imputations are now done. This code imputes the missing values in the data s
 
 **9. Again, inspect the completed data and investigate the imputed data regression model. **
 
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 complete(imp)
 ```
 The repetitive numbering is gone. We have now obtained a more natural looking set of imputations: instead of filling in the same `bmi` for all ages, we now take `age` (as well as `hyp` and `chl`) into account when imputing `bmi`. 
@@ -152,7 +152,7 @@ The imputations are now done. This code imputes the missing values in the data s
 
 **11. Again, inspect the completed data and investigate the imputed data regression model. **
 
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 complete(imp)
 ```
 We have once more obtained a more natural looking set of imputations, where instead of filling in the same `bmi` for all ages, we now take `age` (as well as `hyp` and `chl`) into account when imputing `bmi`. We also add a random error to allow for our imputations to be off the regression line.  
@@ -182,7 +182,7 @@ where 123 is some arbitrary number that you can choose yourself. Re-running this
 
 ---
 
-#####Multiple imputation
+##### Multiple imputation
 
 ---
 
@@ -198,15 +198,15 @@ The object `imp` contains a multiply imputed data set (of class `mids`). It enca
 
 To obtain an overview of the information stored in the object
 `imp`, use the `attributes()` function:
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 attributes(imp)
 ```
 For example, the original data are stored as
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 imp$data
 ```
 and the imputations are stored as
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 imp$imp
 ```
 

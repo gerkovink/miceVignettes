@@ -32,7 +32,7 @@ imp <- mice(nhanes, m = 3, print=F)
 **2. Change the predictor matrix**
 
 The predictor matrix is a square matrix that specifies the variables that are used to impute each incomplete variable. Let us have a look at the predictor matrix that was used
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 imp$pred
 ```
 Each variable in the data has a row and a column in the predictor matrix. A value `1` indicates that the column variable was used to impute the row variable. For example, the `1` at entry `[bmi, age]` indicates that variable `age` was used to impute the incomplete variable `bmi`. Note that the diagonal is zero because a variable is not allowed to impute itself. The row of `age` contains all zeros because there were no missing values in `age`. `mice` gives you complete control over the predictor matrix, enabling you to choose your own predictor relations. This can be very useful, for example, when you have many variables or when you have clear ideas or prior knowledge about relations in the data at hand. You can use `mice()` to give you the initial predictor matrix, and change it afterwards, without running the algorithm. This can be done by typing
@@ -42,7 +42,7 @@ pred <- ini$pred
 pred
 ```
 The object `pred` contains the predictor matrix from an initial run of `mice` with zero iterations, specified by `maxit = 0`. Altering the predictor matrix and returning it to the mice algorithm is very simple. For example, the following code removes the variable `hyp` from the set of predictors, but still leaves it to be predicted by the other variables.
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 pred[ ,"hyp"] <- 0
 pred
 ```
@@ -87,16 +87,16 @@ where `123` is some arbitrary number that you can choose yourself. Rerunning thi
 **4. Change the imputation method**
 
 For each column, the algorithm requires a specification of the imputation method. To see which method was used by default:
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 imp$meth
 ```
 The variable `age` is complete and therefore not imputed, denoted by the `""` empty string. The other variables have method `pmm`, which stands for *predictive mean matching*, the default in
 `mice` for numerical and integer data.  In reality, the data are better described a as mix of numerical and categorical data. Let us take a look at the `nhanes2` data frame
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 summary(nhanes2)
 ```
 and the structure of the data frame
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 str(nhanes2)
 ```
 Variable `age` consists of 3 age categories, while variable `hyp` is binary. The `mice()` function takes these properties automatically into account. Impute the `nhanes2` dataset
@@ -126,7 +126,7 @@ and run the imputations again.
 imp <- mice(nhanes2, meth = meth, print=F)
 ```
 We may now again plot trace lines to study convergence
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 plot(imp)
 ```
 
@@ -148,14 +148,14 @@ Generally, one would prefer for the imputed data to be plausible values, i.e. va
 been observed if they had not been missing. In order to form an idea about plausibility, one may check the imputations and compare them against the observed values. If we are willing to assume that
 the data are missing completely at random (MCAR), then the imputations should have the same distribution as the observed data. In general, distributions may be different because the missing
 data are MAR (or even MNAR). However, very large discrepancies need to be screened. Let us plot the observed and imputed data of `chl` by
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 stripplot(imp, chl~.imp, pch=20, cex=2)
 ```
 
 The convention is to plot observed data in blue and the imputed data in red. The figure graphs the data values of `chl` before and after imputation. Since the PMM method draws imputations from the observed data, imputed values have the same gaps as in the observed data, and are always within the range of the observed data. The figure indicates that the distributions of the imputed and the observed values are similar. The observed data have a particular feature that, for some reason, thedata cluster around the value of 187. The imputations reflect this feature, and are close to the data. Under MCAR, univariate distributions of the observed and imputed data are expected to be identical. Under MAR, they can be different, both in location and spread, but their multivariate distribution is assumed to be identical. There are many other ways to look at the imputed data.
 
 The following command creates a simpler version of the graph from the previous step and adds the plot for `bmi`. 
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 stripplot(imp)
 ```
 
@@ -163,7 +163,7 @@ Remember that `bmi` was imputed by Bayesian linear regression and (the range of)
 
 ---
 
-#####Repeated analysis in mice
+##### Repeated analysis in mice
 
 ---
 
@@ -172,22 +172,22 @@ Remember that `bmi` was imputed by Bayesian linear regression and (the range of)
 \[
 \text{bmi} = \beta_0 + \beta_1 \text{chl} + \epsilon
 \]
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 fit <- with(imp, lm(bmi ~ chl))
 fit
 ```
 The `fit` object contains the regression summaries for each data set. 
 The new object `fit` is actually of class `mira` (*multiply imputed repeated analyses*).
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 class(fit)
 ```
 Use the `ls()` function to what out what is in the object. 
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 ls(fit)
 ```
 Suppose we want to find the regression model fitted to the
 second imputed data set. It can be found as
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 summary(fit$analyses[[2]])
 ```
 
@@ -196,7 +196,7 @@ summary(fit$analyses[[2]])
 **8. Pool the analyses from object `fit`. **
 
 Pooling the repeated regression analyses can be done simply by typing
-```{r, cache = TRUE}
+```{r, cache = FALSE}
 pool.fit <- pool(fit)
 summary(pool.fit)
 ```
