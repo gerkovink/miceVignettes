@@ -31,8 +31,6 @@ library("lattice")
 library("survival")
 ```
 
-
-
 ```{r echo=FALSE}
 load("leiden.rda")
 ```
@@ -199,20 +197,21 @@ fit3
 ---
 
 **12. Pool the results for each of the five scenarios.**
-```{r}
-r1 <- as.vector(t(exp(summary(pool(fit1))[,c(1, 6:7)])))
-r2 <- as.vector(t(exp(summary(pool(fit2))[,c(1, 6:7)])))
-r3 <- as.vector(t(exp(summary(pool(fit3))[,c(1, 6:7)])))
-r4 <- as.vector(t(exp(summary(pool(fit4))[,c(1, 6:7)])))
-r5 <- as.vector(t(exp(summary(pool(fit5))[,c(1, 6:7)])))
+```{r warning = FALSE}
+r1 <- as.vector(t(exp(summary(pool(fit1))[, c(1)])))
+r2 <- as.vector(t(exp(summary(pool(fit2))[, c(1)])))
+r3 <- as.vector(t(exp(summary(pool(fit3))[, c(1)])))
+r4 <- as.vector(t(exp(summary(pool(fit4))[, c(1)])))
+r5 <- as.vector(t(exp(summary(pool(fit5))[, c(1)])))
+
+summary(pool(fit1))
 ```
 
 This code grabs the information from the tabulated pooled results that are produced by summary. In order to make sense about these numbers, and to see what exactly is extracted in the above code, laying out the numbers in a proper table may be useful.
 ```{r}
-pars <- round(t(matrix(c(r1,r2,r3,r4,r5), nrow = 15)),2)
-pars <- pars[, c(1:6, 13:15)]
-dimnames(pars) <- list(delta, c("<125","lo1","hi1", "125-140","lo2","hi2",
-                                ">200","lo3","hi3"))
+pars <- round(t(matrix(c(r1,r2,r3,r4,r5), nrow = 5)),2)
+pars <- pars[, c(1, 2, 5)]
+dimnames(pars) <- list(delta, c("<125", "125-140", ">200"))
 pars
 ```
 
