@@ -131,7 +131,7 @@ Answer: 8 patterns in total, with the pattern where everything is observed occur
 ---
 
 **10. Generate five imputed datasets with the default method `pmm`. Give the algorithm 10 iterations. **
-```{r, cache=TRUE}
+```{r, cache=FALSE}
 imp <- mice(mammalsleep, maxit = 10, print=F)
 ```
 Inspect the trace lines
@@ -161,7 +161,7 @@ The `fmi` and `lambda` are much too high. This is due to `species` being include
 ---
 
 **13. Impute `mammalsleep` again, but now exclude `species` from the data. Name the new imputed dataset `impnew`.**
-```{r, cache=TRUE}
+```{r, cache=FALSE}
 impnew <- mice(mammalsleep[ , -1], maxit = 10, print = F)
 ```
 
