@@ -1,0 +1,398 @@
+---
+title: "`mice`: combining inferences"
+author: "Gerko Vink and Stef van Buuren"
+date: "Multiple Imputation in Practice"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 5
+    toc_float: true
+    number_sections: false
+---
+<style type="text/css">
+
+body{ /* Normal  */
+      font-size: 12px;
+  }
+td {  /* Table  */
+  font-size: 12px;
+}
+h1.title {
+  font-size: 18px;
+  color: DarkBlue;
+}
+h1 { /* Header 1 */
+  font-size: 18px;
+}
+h2 { /* Header 2 */
+    font-size: 18px;
+}
+h3 { /* Header 3 */
+  font-size: 18px;
+}
+code.r{ /* Code block */
+    font-size: 12px;
+}
+pre { /* Code block - determines code spacing between lines */
+    font-size: 14px;
+}
+</style>
+
+---
+
+This is the fifth practical. 
+
+In this practical we will walk you through different ways of combining inferences based on multiply imputed data sets.
+
+All the best, 
+
+[Gerko](https://www.gerkovink.com) and [Stef](http://www.stefvanbuuren.name)
+
+---
+
+**1. Open `R` and load the following packages and fix the random seed.**
+```{r message=FALSE, warning=FALSE}
+library(mice) # Data imputation
+library(dplyr) # Data manipulation
+library(magrittr) # Flexible piping in R
+library(purrr) # Flexible functional programming
+set.seed(123)
+```
+We choose seed value `123`. This is an arbitrary value; any value would be an equally good seed value. Fixing the random seed enables you (and others) to exactly replicate anything that involves random number generators. If you set the seed in your `R` instance to `123`, you will get the exact same results and plots as we present in this document if you follow the order and code of the exercises precisely. 
+
+---
+
+**2. Impute the `boys` data properly with passive imputation for `bmi` with the following parameters:**
+
+- `m = 10` for 10 imputed datasets.
+- `maxit = 6` to give the algorithm 6 iterations to obtain a stable solution.
+- `print = FALSE` to omit printing of the iteration and imputation history.
+
+We will use this data to go through the workflow of data analysis with `mids` (multiply imputed data set) objects. 
+
+We start by creating the `method` vector and specify the passive imputation of `bmi`
+```{r}
+meth <- make.method(boys)
+meth["bmi"] <- "~ I(wgt / (hgt / 100)^2)"
+```
+
+Then we remove `bmi` as a predictor for `hgt` and `wgt` to avoid circularity (`bmi` feeding back into `hgt` and `wgt`.
+```{r}
+pred <- make.predictorMatrix(boys)
+pred[c("hgt", "wgt"), "bmi"] <- 0
+pred
+```
+and we run the `mice` algorithm again with the new predictor matrix (we still 'borrow' the imputation methods object `meth` from before)
+```{r}
+imp <-mice(boys, 
+           meth = meth, 
+           pred = pred, 
+           print = FALSE, 
+           m = 10, 
+           maxit = 6)
+```
+
+We use the multiply imputed data set `imp` from now on.
+
+---
+
+# Correlations
+
+---
+
+**3. Calculate a correlation between all continuous variables for the imputed `boys` data**
+
+There are two ways in which we can calculate the correlation on the imputed data:
+
+- **The wrong way: calculate an estimate over the *average imputed dataset* **.
+
+Quite often people are suggesting that using the average imputed dataset - so taking the average over the imputed data set such that any realized cell depicts the average over the corresponding data in the imputed data - would be efficient and conform Rubin's rules. This is not true. Doing this will yield false inference. 
+
+To demonstrate this, let's ceate the averaged data set and exclude the non-numerical columns:
+```{r warning=FALSE}
+ave <- imp %>%
+  mice::complete("long") %>%
+  group_by(.id) %>%
+  summarise_all(.funs = mean) %>%
+  select(-.id, -.imp, -phb, -gen, -reg)
+
+head(ave)
+```
+If we now calculate Pearson's correlation, rounded to two digits:
+```{r}
+cor.wrong <- ave %>%
+  cor() %>%
+  round(digits = 2)
+```
+we obtain:
+```{r}
+cor.wrong
+```
+
+
+- **The correct way: calculate an estimate for each imputed dataset and average over the estimates**
+
+It is best to do a [Fisher transformation](https://en.wikipedia.org/wiki/Fisher_transformation) before pooling the correlation estimates - and a backtransformation afterwards. Therefore we define the following two functions that allow us to transform and backtransform any value:
+```{r}
+fisher.trans <- function(x) 1/2 * log((1 + x) / (1 - x))
+fisher.backtrans <- function(x) (exp(2 * x) - 1) / (exp(2 * x) + 1)
+```
+
+Now, to calculate the correlation on the imputed data
+```{r}
+cor <- imp %>%
+  mice::complete("all") %>%
+  map(select, -phb, -gen, -reg) %>%  
+  map(stats::cor) %>%
+  map(fisher.trans)
+cor
+```
+
+The object `cor` is a list over the $m$ imputations where each listed index is a correlation `matrix`. To calculate the average over the correlation matrices, we can add the $m$ listed indices and divide them by $m$:
+```{r}
+cor.rect <- Reduce("+", cor) / length(cor) # m is equal to the length of the list
+cor.rect <- fisher.backtrans(cor.rect)
+```
+
+If we compare the wrong estimates in `cor.wrong`
+```{r}
+cor.wrong
+```
+with the correct estimates in `cor.rect`
+```{r}
+round(cor.rect, digits = 2)
+```
+
+We see that the wrong estimates in `cor.wrong` have the tendency to overestimate the correlation coefficient that is correctly combined following Rubin's rules. 
+
+The correct estimates have a diagonal of `NaN`'s, because the tranformation of a correlation of `1` yields `Inf` and the backtransformation of `Inf` has no representation in real number space. We know the diagonal is supposed to be 1, so we can simply correct this
+```{r}
+diag(cor.rect) <- 1
+cor.rect
+```
+
+---
+
+## Why does the average data set not serve as a good basis for analysis?
+
+In [`FIMD v2`, paragraph 5.1.2](https://stefvanbuuren.name/fimd/workflow.html) Stef mentions the following:
+
+>The average workflow is faster and easier than the correct methods, since there is no need to replicate the analyses $m$ times. In the words of Dempster and Rubin (1983), this workflow is
+>
+>***seductive because it can lull the user into the pleasurable state of believing that the data are complete after all.***
+>
+>The ensuing statistical analysis does not know which data are observed and which are missing, and treats all data values as real, which will underestimate the uncertainty of the parameters. The reported standard errors and  p-values after data-averaging are generally too low. The correlations between the variables of the averaged data will be too high. For example, the correlation matrix in the average data
+are more extreme than the average of the $m$ correlation matrices, which is an example of ecological fallacy. As researchers tend to like low  p-values and high correlations, there is a cynical reward for the analysis of the average data. However, analysis of the average data cannot give a fair representation of the uncertainties associated with the underlying data, and hence is not recommended.
+
+---
+
+So, please stay away from averaging the imputed data sets. Instead, use the correct workflow of analyzing the imputed sets seperately and combining the inference afterwards.
+
+---
+
+# Linear models
+
+---
+
+**4. Fit the following linear model on the imputed data:**
+
+- `lm(age ~ wgt + hgt)`
+
+```{r}
+fit1.lm <- imp %>%
+  with(lm(age ~ wgt + hgt))
+
+est1.lm <- pool(fit1.lm)
+est1.lm
+summary(est1.lm)
+```
+
+---
+
+**5. Now expand the linear model from (4) with a squared term for `hgt`:**
+
+- `lm(age ~ wgt + hgt + I(hgt^2))`
+```{r}
+fit2.lm <- imp %>%
+  with(lm(age ~ wgt + hgt + I(hgt^2)))
+
+est2.lm <- pool(fit2.lm)
+est2.lm
+summary(est2.lm)
+```
+
+---
+
+# Model comparisons
+
+---
+
+**6. Compare the models from (4) and (5) to see which model would yield the best fit:**
+
+We have three choices for evaluation:
+
+- The [$D_1$ multivariate Wald test](https://stefvanbuuren.name/fimd/sec-multiparameter.html)
+```{r}
+D1(fit2.lm, fit1.lm) # multivariate Wald test
+```
+The $D_1$ statistic requires a variance covariance matrix for the estimates.
+
+- The [$D_2$ Combining test statistic](https://stefvanbuuren.name/fimd/sec-multiparameter.html)
+```{r}
+D2(fit2.lm, fit1.lm) # combining test statistics
+```
+The $D_2$ requires only the test statistics (e.g. p-values or $X^2$ values) and hence is more flexible to apply than the $D_1$ statistic: But this comes at a cost as the resulting inference is less informed by the data than under the $D_1$ statistic. 
+
+- The [$D_3$ Likelihood ratio test](https://stefvanbuuren.name/fimd/sec-multiparameter.html)
+```{r}
+D3(fit2.lm, fit1.lm) # likelihood ratio test
+```
+For large sample size, $D_3$ is equivalent to $D_1$, however, $D_3$ does not require the covariances of the complete data estimates. It is the preferred method for testing random effects, and connects to global fit statistics in structural equation models. The likelihood ratio test does not require normality. For large `riv` (i.e. values > 10), the $D_3$ statistics must be taken with a grain of salt. In general, given what we know today, the $D_1$ statistic may be slightly more efficient than $D_3$ for small samples (i.e. $<  200$ cases); for larger samples (i.e. $\geq 200$ cases) the $D_1$ and $D_3$ appear equally good and a choice between them is mostly a matter of convenience --> see also [paragraph 5.3.4 in `FIMD v2`](https://stefvanbuuren.name/fimd/sec-multiparameter.html) for a comparison on when to use $D_1$, $D_2$ and/or $D_3$.
+
+---
+
+# Stepwise modeling
+
+---
+
+**7. Fit a stepwise linear model to predict `hgt` seperately to each of the imputed data sets.**
+
+We can use the `step()` function in `R` to select formula-based models. We start by specifying the scope of the evaluations:
+```{r}
+scope <- list(upper = ~ age + wgt + hc + gen + phb + tv + reg,
+              lower = ~ 1)
+```
+The scope specifies the upper bound of the model (all variable to run the selection on) and lower bound of the mode, where a `1` indicates an intercept only model. 
+
+We can then specify the expressions to be evaluated:
+```{r}
+expr <- expression(f1 <- lm(hgt ~ 1),
+                   f2 <- step(f1, 
+                              scope = scope, 
+                              direction = "forward",
+                              trace = 0
+                              ))
+```
+where `f1` is the linear model to be evaluated and `f2` the `step()` function that evaluates the `f1` function. Finally, we apply the `with()` function to evaluate the expression `expr` on object `imp`:
+```{r}
+fit <- with(imp, expr)
+```
+The `fit` object contains the model evaluations
+To calculate the times each variable was selected, we can run:
+```{r}
+formulas <- lapply(fit$analyses, formula)
+terms <- lapply(formulas, terms)
+votes <- unlist(lapply(terms, labels))
+table(votes)
+```
+We see that `reg` is only used in `r table(votes)["reg"]` models based on the `r imp$m` imputed datasets. `tv` is used in `r table(votes)["tv"]` of the models and `gen` is used in `r table(votes)["gen"]` of the `r imp$m` completed-data models. `wgt`, `hc`, `age` and `phb` are used in all models. 
+
+To determine if `gen` should be a part of the final model, we may run a multivariate Wald test:
+```{r}
+fit.gen <- with(imp, lm(hgt ~ age + hc + phb + wgt + gen))
+fit.nogen <- with(imp, lm(hgt ~ age + hc + phb + wgt))
+D1(fit.gen, fit.nogen)
+```
+With a p-value of `.059` we could conclude that `gen` is not strictly needed in this model. We might also investigate the BIC on the seperate imputed sets and compare those across (not within) models. We draw the same conclusion from this evaluation - the BIC is lower for the model without `gen` - although not by much. But then again, the p-value indicated the same trend. 
+```{r}
+BIC.gen <- fit.gen$analyses %>%
+  sapply(BIC) 
+
+BIC.nogen <- fit.nogen$analyses %>%
+  sapply(BIC)
+```
+
+To count the model evaluations in favor of `BIC.nogen` --> better fit means lower BIC:
+```{r}
+BIC.gen
+BIC.nogen
+sum(BIC.gen > BIC.nogen)
+```
+Please not that we can compare the BIC only over the models, not over the imputed data sets. The realized imputations differ for each set, but for each imputed set, the model comparison is based on the same realization. The `sum(BIC.gen > BIC.nogen)` compares only the BIC's against its counterpart for the same imputed data set. The resulting outcome can be considered as a majority vote: in our case `r sum(BIC.gen > BIC.nogen)` out of `r imp$m` model comparisons are in favor of the model without `gen` as a predictor.
+
+---
+
+# Conditional means
+
+---
+
+**8. Calculate the average mean for `bmi` for every region `reg` over the imputed data.**
+
+To study the means for `bmi` conditionally on `reg` to get a picture of what the differences are:
+```{r}
+imp %>%
+  mice::complete("long") %>%
+  select(reg, bmi) %>%
+  group_by(reg) %>%
+  summarise_all(.funs = mean)
+```
+
+To also obtain information about the standard error of the mean, we could extend the `summarise_all()` evaluation wit a custom standard error function:
+```{r}
+se <- function(x){
+  sd(x) / sqrt(length(x))
+}
+```
+and then calculate the summary again
+```{r}
+imp %>%
+  mice::complete("long") %>%
+  select(reg, bmi) %>%
+  group_by(reg) %>%
+  summarise_all(list(~ mean(.), ~se(.)))
+```
+
+---
+
+# Mean differences: ANOVA
+
+---
+
+**9. Test whether the means differ. **
+
+This is best done with an ANOVA. To do this correctly, we can apply the following workflow. First, we fit an intercept only model
+```{r}
+fit.empty <- imp %>%
+  mice::complete("all") %>%
+  map(lm, formula = bmi ~ 1)
+```
+and then we fit the model with `reg` as a predictor
+```{r}
+fit.reg <- imp %>%
+  mice::complete("all") %>%
+  map(lm, formula = bmi ~ 1 + reg)
+```
+
+We can calculate  the seperate ANOVA's from each fitted model:
+```{r}
+aov.empty <- lapply(with(imp, lm(age ~ 1))$analyses, aov)
+aov.reg <- lapply(with(imp, lm(age ~ 1 + reg))$analyses, aov)
+```
+
+And look at the summaries:
+```{r}
+lapply(aov.empty, summary)
+```
+The summary for the `aov.empty` object has no p-values. This is expected as we are fitting an empty model (without any predictors) and hence have no model Mean Squares (MS) to calculate and test the ratio 
+
+$$F = \frac{\text{Model MS}}{\text{Residual MS}}$$
+
+We do have those components for the model with `reg` included as predictor:
+```{r}
+lapply(aov.reg, summary)
+```
+We find that each of the seperate ANOVA's indicates significance, meaning that there is an overall effect for `reg` on `bmi` in each imputed data set. 
+
+To obtain an overall estimate for the ANOVA we can simply compare the empty model to the model with `reg` included:
+```{r}
+D1(fit.reg, fit.empty)
+```
+And find that indeed the overall (i.e. pooled) effect over the imputations is also significant, which is not surprising as the F-values for the seperate tests show little variation. 
+
+
+---
+
+
+**- End of practical**
+
+---
