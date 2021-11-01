@@ -73,7 +73,7 @@ con <- url("https://www.gerkovink.com/mimp/popular.RData")
 load(con)
 ```
 
-This workspace contains several datasets and functions that, when loaded, are available to you in R. If you’d like to see what is inside: run the following code
+This workspace contains several datasets and functions that, when loaded, are available to you in R. If you'd like to see what is inside: run the following code
 ```{r cache = FALSE}
 ls()
 ```
@@ -162,7 +162,7 @@ icc(aov(popular ~ as.factor(class), data = popNCR))
 icc(aov(popteach ~ class, data = popNCR))
 icc(aov(texp ~ class, data = popNCR))
 ```
-Please note that the function `icc()` comes from the package `multilevel` (function `ICC1()`), but is included in the workspace `popular.RData`. Write down the ICC’s, you’ll need them later.
+Please note that the function `icc()` comes from the package `multilevel` (function `ICC1()`), but is included in the workspace `popular.RData`. Write down the ICCs, you'll need them later.
 
 ---
 
@@ -203,7 +203,7 @@ Yes, we can see this in the imputed data: teacher experience increases slightly 
 
 ---
 
-**10. Compare the ICC’s of the variables in the first imputed dataset with those in the incomplete dataset (use `popular`, `popteach` and `texp`). Make a notation of the ICC’s after imputation.**
+**10. Compare the ICCs of the variables in the first imputed dataset with those in the incomplete dataset (use `popular`, `popteach` and `texp`). Make a notation of the ICCs after imputation.**
 ```{r cache = FALSE}
 data.frame(vars = names(popNCR[c(6, 7, 5)]), 
            observed = c(icc(aov(popular ~ class, popNCR)), 
@@ -225,7 +225,7 @@ imp2 <- mice(popNCR, meth = meth, pred = pred, print = FALSE)
 
 ---
 
-**12. Compare the ICC’s of the variables in the first imputed dataset from `imp2` with those of `imp1` and the incomplete dataset (use `popular`, `popteach` and `texp`). Make a notation of the ICC’s after imputation.**
+**12. Compare the ICCs of the variables in the first imputed dataset from `imp2` with those of `imp1` and the incomplete dataset (use `popular`, `popteach` and `texp`). Make a notation of the ICCs after imputation.**
 ```{r cache = FALSE}
 data.frame(vars = names(popNCR[c(6, 7, 5)]), 
            observed  = c(icc(aov(popular ~ class, popNCR)), 
@@ -323,13 +323,13 @@ Yes, `pmm` samples from the observed values and this clearly shows: imputations 
 
 ---
 
-**19. Compare the ICC’s of the variables in the first imputed dataset from `imp4` with those of `imp1`, `imp2` and the incomplete dataset (use `popular`, `popteach` and `texp`).**
+**19. Compare the ICCs of the variables in the first imputed dataset from `imp4` with those of `imp1`, `imp2` and the incomplete dataset (use `popular`, `popteach` and `texp`).**
 
 See **Exercise 20** for the solution. 
 
 ---
 
-**20. Finally, compare the ICC’s of the imputations to the ICC’s in the original data. The original data can be found in dataset `popular`. What do you conclude?**
+**20. Finally, compare the ICCs of the imputations to the ICCs in the original data. The original data can be found in dataset `popular`. What do you conclude?**
 ```{r cache = FALSE}
 data.frame(vars      = names(popNCR[c(6, 7, 5)]), 
            observed  = c(icc(aov(popular ~ class, popNCR)), 
@@ -513,7 +513,7 @@ plot(imp8)
 
 **Conclusions**
 
-There are ways to ensure that imputations are not just ‘guesses of unobserved values’. Imputations can be checked by using a standard of reasonability. We are able to check the differences between observed and imputed values, the differences between their distributions as well as the distribution of the completed data as a whole. If we do this, we can see whether imputations make sense in the context of the problem being studied.
+There are ways to ensure that imputations are not just "guesses of unobserved values". Imputations can be checked by using a standard of reasonability. We are able to check the differences between observed and imputed values, the differences between their distributions as well as the distribution of the completed data as a whole. If we do this, we can see whether imputations make sense in the context of the problem being studied.
 
 ---
 
@@ -521,7 +521,7 @@ There are ways to ensure that imputations are not just ‘guesses of unobserved 
 
 Gelman, A., & Hill, J. (2006). *Data analysis using regression and multilevel/hierarchical models*. [Cambridge University Press](http://www.cambridge.org/nl/academic/subjects/statistics-probability/statistical-theory-and-methods/data-analysis-using-regression-and-multilevelhierarchical-models?format=HB&isbn=9780521867061).
 
-Hox, J. J., Moerbeek, M., & van de Schoot, R. (2010). *Multilevel analysis: Techniques and applications*. [Routledge](https://www.routledge.com/products/9781848728462).
+Hox, J. J., Moerbeek, M., & van de Schoot, R. (2010). *Multilevel analysis: Techniques and applications*. [Routledge](https://www.routledge.com/Multilevel-Analysis-Techniques-and-Applications-Third-Edition/Hox-Moerbeek-Schoot/p/book/9781138121362).
 
 Yucel, R. M. (2008). Multiple imputation inference for multivariate multilevel continuous data with ignorable non-response. *Philosophical Transactions of the Royal Society of London A: Mathematical, Physical and Engineering Sciences*, 366(1874), 2389-2403. [Article](http://rsta.royalsocietypublishing.org/content/366/1874/2389)
 
