@@ -1,0 +1,295 @@
+---
+title: "Wrapper function `futuremice`"
+author: "Thom Benjamin Volker & Gerko Vink"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document:
+    df_print: kable
+header-includes:
+- \usepackage{caption}
+- \usepackage{natbib}
+---
+
+---
+
+### The future starts today
+
+---
+
+```{r, include = FALSE}
+require(mice)
+require(ggplot2)
+require(parallel)
+require(gridExtra)
+require(purrr)
+require(dplyr)
+```
+
+For big datasets or high number of imputations, performing multiple imputation with function `mice` from package `mice` (Van Buuren & Groothuis-Oudshoorn, 2011) might take a long time. As a solution, wrapper function `futuremice` was created to enable the imputation procedure to be run in parallel. This is done by dividing the imputations over multiple cores (or CPUs), thus potentially speeding up the process. The function `futuremice` is a sequel to `parlMICE` (Schouten & Vink, 2017), developed to improve user-friendliness. 
+
+This vignette demonstrates two applications of the `futuremice` function. The first application shows the tradeoff between time and increasing number of imputations ($m$) for a small dataset; the second application does the same, but for a relatively large dataset. We also discuss `futuremice`'s arguments.
+
+The function `futuremice` depends on packages `future`, `furrr` and `mice`. For more information about running functions in futures, see e.g. [the `future` manual](https://cran.r-project.org/web/packages/future/vignettes/future-1-overview.html) or [the `furrr` manual ](https://furrr.futureverse.org/). Function `futuremice` found its inspiration from Max's useful suggestions on parallelization of `mice`'s chains on [`stackoverflow`](http://stackoverflow.com/questions/24040280/parallel-computation-of-multiple-imputation-by-using-mice-r-package).
+
+---
+
+### Time gain with small datasets
+
+We demonstrate the potential gain in computing efficiency on simulated data. To this end we sample 1,000 cases from a multivariate normal distribution with mean vector
+
+$$
+\mu = \left[\begin{array}
+{r}
+0 \\
+0 \\
+0 \\
+0
+\end{array}\right]
+$$
+
+and covariance matrix
+
+$$
+\Sigma = \left[\begin{array}
+{rrrr}
+1&0.5&0.5&0.5 \\
+0.5&1&0.5&0.5 \\
+0.5&0.5&1&0.5 \\
+0.5&0.5&0.5&1
+\end{array}\right].
+$$
+
+A MCAR missingness mechanism is imposed on the data where 80 percent of the cases (i.e. rows) has missingness on one variable. All variables have missing values. The missingness is randomly generated with the following arguments from function [`mice::ampute`](https://github.com/RianneSchouten/Amputation_with_Ampute/tree/master/Vignette):
+
+```{r}
+set.seed(123)
+
+small_covmat <- diag(4)
+small_covmat[small_covmat == 0] <- 0.5
+small_data <- MASS::mvrnorm(1000, 
+                      mu = c(0, 0, 0, 0),
+                      Sigma = small_covmat)
+
+small_data_with_missings <- ampute(small_data, prop = 0.8, mech = "MCAR")$amp
+head(small_data_with_missings)
+```
+
+We compare the default 'sequential' function `mice` with function `futuremice`. In both functions we use the defaults arguments for the `mice` algorithm, although these could very easily be changed if desired by the user. To demonstrate the increased efficiency when putting more than one computing core to work, we repeat the procedure with `futuremice` for 1, 2, 3 and 4 cores. Figure 1 shows a graphical representation of the results.  
+
+---
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE, fig.width = 12, fig.height = 5, cache = TRUE, cache.lazy=FALSE}
+ms <- c(1, 1:10 * 5, 6:10 * 10, 6:20 * 20)
+
+small_mice_time        <- map_dbl(ms, ~ system.time(mice(small_data_with_missings, m = .x, print = FALSE))[3])
+small_futuremice1_time <- map_dbl(ms, ~ system.time(futuremice(small_data_with_missings, m = .x, n.core = 1))[3])
+small_futuremice2_time <- map_dbl(ms, ~ system.time(futuremice(small_data_with_missings, m = .x, n.core = 2))[3])
+small_futuremice3_time <- map_dbl(ms, ~ system.time(futuremice(small_data_with_missings, m = .x, n.core = 3))[3])
+
+tibble(imputations = ms,
+       mice        = small_mice_time,
+       `1core`     = small_futuremice1_time,
+       `2core`     = small_futuremice2_time,
+       `3core`     = small_futuremice3_time) %>%
+  ggplot() +
+  geom_line(aes(x = imputations, y = mice, color = "A")) +
+  geom_line(aes(x = imputations, y = `1core`, color = "B")) +
+  geom_line(aes(x = imputations, y = `2core`, color = "C")) +
+  geom_line(aes(x = imputations, y = `3core`, color = "D")) +
+  xlab("Number of imputations") +
+  ylab("Time in seconds") +
+  scale_color_brewer(labels = c("Mice", 
+                                "Futuremice - 1 core", 
+                                "Futuremice - 2 cores", 
+                                "Futuremice - 3 cores"),
+                     palette = "Set1") +
+  ggtitle("Time comparison with small data set")
+```
+
+*Figure 1. Processing time for small datasets. Multiple imputations are performed with `mice` (conventional) and wrapper function `futureMICE` (1, 2, 3 and 4 cores, respectively). The dataset has 1000 cases and 4 variables with a correlation of 0.5. 80 percent of the cases has one missing value based on MCAR missingness.*
+
+---
+
+It becomes apparent that for a small to moderate number of imputations, the conventional `mice` function is faster than the wrapper function `futuremice`. This is the case until the number of imputations $m = 120$. For higher $m$, wrapper function `futuremice` returns the imputations somewhat faster.
+
+---
+
+### Time gain with large datasets
+
+We replicated the above detailed simulation setup with a larger dataset of 10,000 cases and 8 variables. The mean and covariance structure follow the sampling scheme of the smaller data set. We show the results of this simulation in Figure 2.
+
+---
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE, fig.width = 12, fig.height = 5, cache = TRUE, cache.lazy=FALSE}
+large_covmat <- diag(8)
+large_covmat[large_covmat == 0] <- 0.5
+large_data <- MASS::mvrnorm(10000, 
+                            mu = c(0, 0, 0, 0, 0, 0, 0, 0),
+                            Sigma = large_covmat)
+
+large_data_with_missings <- ampute(large_data, prop = 0.8, mech = "MCAR")$amp
+head(large_data_with_missings)
+
+
+ms <- c(1, 5, 10, 15, 20, 25, 10 * 3:10)
+
+large_mice_time        <- map_dbl(ms, ~ system.time(mice(large_data_with_missings, m = .x, print = FALSE))[3])
+large_futuremice1_time <- map_dbl(ms, ~ system.time(futuremice(large_data_with_missings, m = .x, n.core = 1))[3])
+large_futuremice2_time <- map_dbl(ms, ~ system.time(futuremice(large_data_with_missings, m = .x, n.core = 2))[3])
+large_futuremice3_time <- map_dbl(ms, ~ system.time(futuremice(large_data_with_missings, m = .x, n.core = 3))[3])
+
+tibble(imputations = ms,
+       mice        = large_mice_time,
+       `1core`     = large_futuremice1_time,
+       `2core`     = large_futuremice2_time,
+       `3core`     = large_futuremice3_time) %>%
+  ggplot() +
+  geom_line(aes(x = imputations, y = mice, color = "A")) +
+  geom_line(aes(x = imputations, y = `1core`, color = "B")) +
+  geom_line(aes(x = imputations, y = `2core`, color = "C")) +
+  geom_line(aes(x = imputations, y = `3core`, color = "D")) +
+  xlab("Number of imputations") +
+  ylab("Time in seconds") +
+  scale_color_brewer(labels = c("Mice", 
+                                "Futuremice - 1 core", 
+                                "Futuremice - 2 cores", 
+                                "Futuremice - 3 cores"),
+                     palette = "Set1") +
+  ggtitle("Time comparison with large data set")
+```
+
+*Figure 2. Processing time for large datasets. Multiple imputations are performed with `mice` (conventional) and wrapper function `parlMICE` (1, 2 and 3 cores respectively). The dataset has 10000 cases and 8 variables with a correlation of 0.5. 80 percent of the cases has one missing value based on MCAR missingness.*
+
+---
+
+When datasets are sufficiently large, function `futuremice` works faster than `mice` for all $m$. In such cases, even for very small numbers of imputations, running `mice` in parallel with `futuremice` saves a significant amount of time. This gain in efficiency can increase to more than 50 percent for $100$ imputations and more. 
+
+There is not a large difference between using 2 and 3 cores with wrapper function `parlMICE`. For all number of imputations, the procedure runs faster with 3 cores, even though the imputations have to be divided over the cores. It might therefore be desirable to use always as many cores as possible, while leaving 1 core out to govern any overhead computing. For example, on a hexacore machine, use only 5 cores to run the `mice` algorithm in parallel with `futuremice`.
+
+---
+
+### Default settings
+
+We will now discuss the arguments of function `futuremice`. Easy imputation of an incomplete dataset (say, `nhanes`) can be performed with `futuremice` in the following way. 
+
+```{r, eval = T}
+imp <- futuremice(nhanes)
+class(imp)
+```
+
+The function returns a `mids` object as created by `mice`. In fact, `futuremice` makes use of function `mice::ibind` to combine the `mids` objects returned by the different cores. Therefore, the `call` of the `mids` object has slightly changed. 
+
+```{r, eval = TRUE}
+imp$call
+```
+
+Additionally, `futuremice` makes use of a `parallelseed` argument that is stored in `imp$parallelseed`. 
+
+```{r}
+imp$parallelseed
+```
+
+If no seed is specified by the user, a seed will be drawn randomly from a uniform distribution $U(-999999999,999999999)$, and this seed will be returned, such that the user can reproduce the obtained results even when no seed is specified. See section [Argument `parallelseed`] for more information.
+
+All other parts of the `mids` object are standard.
+
+---
+
+### Using `mice` arguments
+
+Function `futuremice` is able to deal with the conventional `mice` arguments. In order to change the imputation method from its default (predictive mean matching) to, for example, Bayesian linear regression, the `method` argument can be adjusted. For other possibilities with `mice`, we refer to the `mice` [manual](https://cran.r-project.org/web/packages/mice/mice.pdf).
+
+```{r, eval = T}
+imp <- futuremice(nhanes, method = "norm")
+imp$method
+```
+
+In `mice`, the number of imputations is specified with argument `m`. In `futuremice`, the same argument should be used, and `futuremice` takes care of dividing the imputations equally over the cores. The next section discusses these arguments.  
+
+---
+
+### Argument `n.core`
+
+With `n.core`, the number of cores (or CPUs) is given, and the number of imputations `m` is (about) equally distributed over the cores.
+
+As a default, `n.core` is specified as the number of available, logical cores minus 1. The default number of imputations has been set to `m = 5`, just as in a regular `mice` call. Hence, on machines with 4 available, logical cores, $5$ imputations are divided over 3 cores, leaving 1 core available for any overhead computations. This results in a number of imputations per core of: $`r cut(1:5, 4-1, labels = paste0("core", 1:{4-1}))`$, respectively.
+
+The computer with which this vignette is run, has 
+
+```{r, eval = T}
+parallelly::availableCores(logical = TRUE)
+```
+
+available, logical cores. Accordingly, the number of imputations per core equals `r cut(1:5, 4-1, labels = paste0("core", 1:{4-1}))` We can check this by evaluating the $m$ that is shown in the `mids` object. 
+
+```{r, eval = F}
+imp$m
+```
+
+---
+
+### Argument `parallelseed`
+
+In simulation studies, it is often desired to set a seed to make the results reproducible. Similarly to `mice`, the seed value for `futuremice` can be defined outside the function. Under the hood, `futuremice` makes use of the `furrr::furrr_options(seed = TRUE)` argument, which recognizes that a seed has been specified in the global environment. Hence users can specify the following code to obtain identical results.
+
+```{r, warnings = FALSE, cache = TRUE}
+library(magrittr)
+set.seed(123)
+imp1 <- futuremice(nhanes, n.core = 3)
+set.seed(123)
+imp2 <- futuremice(nhanes, n.core = 3)
+
+imp1 %$% lm(chl ~ bmi) %>% pool %$% pooled
+imp2 %$% lm(chl ~ bmi) %>% pool %$% pooled
+```
+
+A user can also specify a seed within the `futuremice` call, by specifying the argument `parallelseed`. This seed is parsed to `withr::local_seed()`, such that the global environment is not affected by a different seed within the `futuremice` function. Hence, users can also specify a seed as follows. 
+
+```{r, cache = TRUE, eval = T}
+imp3 <- futuremice(nhanes, parallelseed = 123, n.core = 3)
+imp4 <- futuremice(nhanes, parallelseed = 123, n.core = 3)
+
+imp3 %$% lm(chl ~ bmi) %>% pool %$% pooled
+imp4 %$% lm(chl ~ bmi) %>% pool %$% pooled
+```
+
+This also yields identical results for `imp3` and `imp4`. However, note that this does **not** result in the exact same imputations as the procedure where the seed is specified in the global environment.
+
+If no seed is specified in the global environment, or in the call itself, the results are still reproducible, because in such circumstances, `futuremice` randomly draws a seed from a uniform distribution $U(-999999999,999999999)$. This randomly drawn seed is stored under `$parallelseed` in the output object, such that reproducible results can be obtained as follows. 
+
+```{r, cache = TRUE, eval = T}
+imp5 <- futuremice(nhanes, n.core = 3)
+parallelseed <- imp5$parallelseed
+imp6 <- futuremice(nhanes, parallelseed = parallelseed, n.core = 3)
+
+imp5 %$% lm(chl ~ bmi) %>% pool %$% pooled
+imp6 %$% lm(chl ~ bmi) %>% pool %$% pooled
+```
+
+__WARNING:__ Under unique circumstances, users might want to check whether imputations obtained under different streams are identical. This can be done by specifying the regular `seed` argument in the `futuremice` call. This seed is parsed to the separate `mice` calls within all futures, such that the results will be identical over the cores. If users specify the `seed` argument rather than the `parallelseed` argument, `futuremice` will ask if this is intended behavior if the user is in an `interactive()` session. Otherwise, a warning will be printed.
+
+---
+
+### Systems other than Windows
+
+Function `futuremice` calls for function `future_map` with `plan("multisession")` from the `furrr` [package](https://furrr.futureverse.org/). Although other options are available, we have chosen for the `plan("multisession")` because it allows for the use of multiple cores on all computers, including a Windows computer. The user may adjust this by specifying the `future.plan` argument within `futuremice`. Other options are for example `future.plan = "multicore"`, which results in `plan("multicore")` (which is not supported on Windows computers), `future.plan = "cluster"`, resulting in `plan("cluster")`. For all options regarding `plan()`, check `?future::plan()`.
+
+---
+
+### References
+
+Manual `R`-package `future`, available at [https://cran.r-project.org/web/packages/future/future.pdf](https://cran.r-project.org/web/packages/future/future.pdf)
+
+Manual `R`-package `furrr`, available at [https://cran.r-project.org/web/packages/furrr/furrr.pdf](https://cran.r-project.org/web/packages/furrr/furrr.pdf)
+
+Manual package `MICE`, available at [https://cran.r-project.org/web/packages/mice/mice.pdf](https://cran.r-project.org/web/packages/mice/mice.pdf)
+
+Schouten, R.M., Lugtig, P.J. and Vink, G. (2016). Multiple amputation using ampute [manual]. Available at [https://github.com/RianneSchouten/mice/blob/ampute/vignettes/Vignette_Ampute.pdf](https://github.com/RianneSchouten/mice/blob/ampute/vignettes/Vignette_Ampute.pdf)
+
+Schouten, R.M. and Vink, G. (2017). parlmice: faster, paraleller, micer. [https://www.gerkovink.com/parlMICE/Vignette_parlMICE.html](https://www.gerkovink.com/parlMICE/Vignette_parlMICE.html)
+
+Van Buuren, S. and Groothuis-Oudshoorn, K. (2011). mice: Multivariate imputation by chained equations in R. *Journal of Statistical Software, 45 (3)*, 1-67. 
+
+---
+
+**End of Vignette**
