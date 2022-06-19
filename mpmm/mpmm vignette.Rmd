@@ -1,0 +1,90 @@
+---
+title: "Multivariate predictive mean matching"
+author: "Mingyang Cai"
+date: ""
+output: 
+   html_document:
+    toc: true
+    toc_depth: 5
+    toc_float: true
+    number_sections: false
+---
+  
+<style type="text/css">
+  
+body{ /* Normal  */
+  font-size: 12px;
+  }
+td {  /* Table  */
+  font-size: 12px;
+}
+h1.title {
+  font-size: 18px;
+  color: DarkBlue;
+}
+h1 { /* Header 1 */
+  font-size: 18px;
+}
+h2 { /* Header 2 */
+  font-size: 18px;
+}
+h3 { /* Header 3 */
+  font-size: 18px;
+}
+code.r{ /* Code block */
+  font-size: 12px;
+}
+pre { /* Code block - determines code spacing between lines */
+  font-size: 14px;
+}
+</style>
+
+---
+
+Multivariate predictive mean matching is a generlised of univariate predictive mean, which can impute incomplete variables simultaneously.
+
+# Packages used
+The following packages are used.  
+```{r message=FALSE, warning=FALSE}
+library(devtools)
+install_github("amices/mice")
+library(mice)  
+```
+
+---
+
+# Data generation
+```{r}
+set.seed(123)
+B1 <- .5
+B2 <- .5
+X <- rnorm(1000)
+XX <- X^2
+e <- rnorm(1000, 0, 1)
+Y <- B1 * X + B2 * XX + e
+dat <- data.frame(x = X, xx = XX, y = Y)
+# Impose 25 percent MCAR Missingness
+dat[0 == rbinom(1000, 1, 1 - .25), 1:2] <- NA
+```
+
+---
+
+# Imputation
+```{r}
+# Prepare data for imputation
+blk <- list(c("x", "xx"), "y")
+meth <- c("mpmm", "")
+# Impute data
+imp <- mice(dat, blocks = blk, method = meth, print = FALSE)
+```
+
+---
+
+# Plot results
+```{r}
+# Pool result
+pool(with(imp, lm(y ~ x + xx)))
+plot(dat$x, dat$xx, col = mdc(1), xlab = "x", ylab = "xx")
+cmp <- complete(imp)
+points(cmp$x[is.na(dat$x)], cmp$xx[is.na(dat$x)], col = mdc(2))
+```
