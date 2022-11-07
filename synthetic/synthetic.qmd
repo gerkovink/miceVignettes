@@ -1,0 +1,551 @@
+---
+title: "Synthetic data in `R`: Generating synthetic data with high utility using `mice`"
+author: "Thom Volker & Gerko Vink"
+bibliography: files/synthetic-osf-workshop.bib
+link-citations: true
+format: 
+  html:
+    toc: true
+---
+
+
+
+# Introduction
+
+In this workshop, you will learn how to create and evaluate synthetic data in `R`. In the practical, we will work with the `R` package `mice` [@mice]. `mice` was originally developed to impute missing data, but, as you will experience, can also be used to impute synthetic data [see @volker_vink_synthetic_mice_2021]. Other alternatives to create synthetic data are, for example, the R-package `synthpop` [@synthpop], or the stand-alone software `IVEware` [@iveware]. 
+
+In this workshop, you will (at least) use the packages `mice` [@mice], `ggmice` [make sure to download the latest version from GitHub, @ggmice], `ggplot2` [@ggplot2], `patchwork` [@patchwork], `psych` [@psych], `purrr` [@purrr] and `synthpop` [@synthpop]. Make sure to load them (in case you haven't installed them already, install them first, using `install.packages("package.name")`).
+
+```{r, install-packages}
+#| eval: false
+remotes::install_github("amices/mice")
+remotes::install_github("amices/ggmice")
+install.packages("ggplot2")
+install.packages("patchwork")
+install.packages("psych")
+install.packages("purrr")
+install.packages("synthpop")
+```
+
+```{r load-packages, message=F, warning=F}
+library(mice)      # to create the synthetic data
+library(ggmice)    # to make visualizations of the synthetic data
+library(ggplot2)   # required when using ggmice
+library(patchwork) # to stitch multiple figures together
+library(psych)     # to obtain descriptive statistics
+library(purrr)     # to work with multiply imputed synthetic datasets
+library(synthpop)  # to assess the utility of our synthetic data
+```
+
+Additionally, make sure to set a seed, so that your results can be compared with our results.
+
+```{r}
+set.seed(1)
+```
+
+---
+
+# Data: _Heart failure clinical records_
+
+
+The *Heart failure clinical records* data set is a medical data set from the UCI Machine Learning Repository ([click here for the source](archive.ics.uci.edu/ml/datasets/Heart+failure+clinical+records)), originally collected by @tanvir_heart_failure_2017 from the Government College University, Faisalabad, Pakistan, and adapted and uploaded to the UCI MLR by @chicco_ml_2020. This data set contains medical information of `r nrow(readRDS("data//heart_failure.RDS"))` individuals on `r ncol(readRDS("data//heart_failure.RDS"))` variables, and is typically used to predict whether or not a patient will survive during the follow-up period, using several biomedical predictors.
+
+If you have `R Studio` installed on your own machine, you can download the *cleaned* version of the *Heart failure clinical records* data set from my GitHub and load it as `heart_failure`, by running the following line of code.
+
+```{r load-data}
+heart_failure <- readRDS(url("https://thomvolker.github.io/UMCUSynthetic/data/heart_failure.RDS"))
+```
+
+The *Heart failure clinical records* data consists of the following variables:
+
+```{r variables, echo=F, results='asis'}
+vars <- c(age = "Age in years",
+               anaemia = "Whether the patient has a decrease of red blood cells (No/Yes)",
+               hypertension = "Whether the patient has high blood pressure (No/Yes)",
+               creatinine_phosphokinase = "Level of the creatinine phosphokinase enzyme in the blood (mcg/L)",
+               diabetes = "Whether the patient has diabetes (No/Yes)",
+               ejection_fraction = "Percentage of blood leaving the heart at each contraction",
+               platelets = "Platelets in de blood (kiloplatelets/mL)",
+               sex = "Sex (Female/Male)",
+               serum_creatinine = "Level of serum creatinine in the blood (mg/dL)",
+               serum_sodium = "Level of serum sodium in the blood (mg/dL)",
+               smoking = "Whether the patient smokes (No/Yes)",
+               follow_up = "Follow-up period (days)",
+               deceased = "Whether the patient deceased during the follow-up period")
+paste0("- `", 
+       names(vars), 
+       "`: ", 
+       vars,
+       collapse = " \n") |>
+  cat()
+```
+
+After loading the data, it is always wise to first inspect the data, so that you have an idea what to expect. 
+
+```{r head-data, results=FALSE}
+head(heart_failure)
+```
+
+```{r head-data-show, echo=F, message=F, warning=FALSE}
+heart_failure |>
+  head() |>
+  knitr::kable() |>
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover")) |>
+  kableExtra::scroll_box(width = "100%")
+```
+
+Additionally, we can ask for a summary of all variables, or use `describe()` from the `psych`-package to provide descriptive statistics of all variables.
+
+*Note.* Make sure to install `psych` if you haven't done so in the past.
+
+```{r summary-data}
+summary(heart_failure)
+```
+
+This gives a good impression about the measurement levels of all variables, as well as the range of the possible values each variable can have. 
+
+```{r describe-data, eval=F}
+describe(heart_failure)
+```
+
+```{r describe-data-knitr, echo=FALSE}
+heart_failure |>
+  describe() |>
+  knitr::kable() |>
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover")) |>
+  kableExtra::scroll_box(width = "100%")
+```
+
+
+The `describe()` function gives more distributional information about all variables. 
+
+---
+
+# Creating synthetic data
+
+Broadly speaking, two methods for creating synthetic data can be distinguished. The first one is based on parametric imputation models, which assumes that the structure of the data is fixed, and draws synthetic values from a pre-specified probability distribution. That is, after estimating a statistical model, the synthetic data are generated from a probability distribution, without making any further use of the observed data. In general, this procedure is less likely to result in an accidental release of disclosive information. However, these parametric methods are often less capable of capturing the complex nature of real-world data sets.
+
+The subtleties of real-world data are often better reproduced with non-parametric imputation models. Using this approach, a non-parametric model is estimated, resulting in a donor pool out of which a single observation per observation and per variable is drawn. These models thus reuse the observed data to serve as synthetic data. Accordingly, much of the values that were in the observed data end up in the synthetic data. However, these observed data are generally combined in unique ways, it is generally not possible to link this information to the original respondents. The non-parametric procedures often yield better inferences, while still being able to prevent disclosure risk (although more research into measures to qualify the remaining risks is required). Therefore, this practical will showcase how to generate synthetic data using one such non-parametric method: classification and regression trees [CART; @breiman_cart_1984].
+
+---
+
+Now you have a feeling of what the data looks like, we will use these two different ways to create synthetic data: a fully parametric approach, in which the data are synthesized using either linear or logistic regression, and a fully non-parametric approach, in which we synthesize all data using CART.
+
+In general, `mice` proceeds as follows: from first to the last column in your data set, the given variable is synthesized based on all other variables in the data. Specifically, a model is trained on the observed data, and new values for variable $X_j$ are imputed on the basis of all other variables $X_{-j}$. This procedure is repeated sequentially, until all variables are synthesized. In this way, the relationships between the variables are generally preserved. 
+
+However, before we can use `mice` to generate synthetic data, we have to take care of some issues, because `mice` was not initially developed to create synthetic data. Specifically, we have to do two things: specify which values we want to overimpute and specify which method we want to use for the imputations.
+
+---
+
+__1. Create a matrix of the same dimensions as the original data called `where`, specifying all cells as the logical operator `TRUE`.__
+
+_Hint:_ You can use the `mice` function `make.where()`.
+
+```{r}
+where <- make.where(heart_failure, "all")
+```
+
+---
+
+__2. Create a vector of length `r ncol(heart_failure)` called `method`, indicating which (parametric) method to use to synthesize each variable.__
+
+_Hint:_ You can use `make.method()` to create an initial vector with imputation methods, and replace each cell with `"pmm"` with `"norm"`.
+
+```{r}
+method <- make.method(heart_failure, where = where)
+method[method == "pmm"] <- "norm"
+```
+
+---
+
+Now we have specified which values ought to be synthetic, and which method to use to create the synthetic values, we can actually create the synthetic data.
+
+---
+
+__3. Use `mice()` to create `m = 10` synthetic data sets in an object called `syn_param`, using the previously specified `method` vector and `where`-matrix.__
+
+_Hint:_ When creating synthetic data, a single iteration is sufficient when there is no missing data, so we can set `maxit = 1`.
+
+```{r}
+syn_param <- mice(heart_failure, 
+                  m = 10, 
+                  maxit = 1,
+                  method = method,
+                  where = where,
+                  printFlag = FALSE)
+```
+
+---
+
+Creating the synthetic data is a piece of cake. However, after creating the synthetic data, we must assess its quality in terms of data utility and disclosure risk. Quality control is conveniently performed using visual methods, and can be done using the package `ggmice` [@ggmice].
+
+---
+
+# Synthetic data utility
+
+The quality of synthetic data sets can be assessed on multiple levels and in multiple different ways. Starting on a univariate level, the distributions of the synthetic data sets can be compared with the distribution of the observed data. For the continuous variables, this can be done by comparing the densities of the synthetic data sets with the observed data sets. Later on, we also look at the utility of the synthetic data on a multivariate level.
+
+---
+
+## Univariate data utility
+
+__4. To get an idea of whether creating the synthetic data went accordingly, compare the 10 rows of the fourth synthetic data set with the first 10 rows of the original data.__
+
+_Hint:_ You can use `complete(syn_param, 4)` to extract the fourth synthetic data set from the `syn_param` object. 
+
+```{r}
+#| eval: false
+complete(syn_param, 4) |> 
+  head(10)
+heart_failure |> 
+  head(10)
+```
+```{r}
+#| echo: false
+complete(syn_param, 4) |> 
+  head(10) |>
+  knitr::kable() |>
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover")) |>
+  kableExtra::scroll_box(width = "100%")
+
+heart_failure |> 
+  head(10) |>
+  knitr::kable() |>
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover")) |>
+  kableExtra::scroll_box(width = "100%")
+```
+
+The first thing we can notice, is that the continuous variables are not rounded, as in the original data, which is logical, because we draw these values from a normal distribution. Apart from that, there are negative values in the synthetic version of the variable `creatinine_phosphokinase`, while the original data is strictly positive. We will come to these issues at a later moment. 
+
+Apart from inspecting the data itself, we can assess distributional similarity between the observed and synthetic data. For simplicity, we will first focus on the sixth synthetic data set.
+
+__5. Compare the descriptive statistics from the sixth synthetic data set with the descriptive statistics from the observed data.__
+
+_Hint:_ Use the function `describe()` from the `psych` package to do this.
+
+```{r}
+#| eval: false
+complete(syn_param, 6) |>
+  describe()
+
+heart_failure |>
+  describe()
+```
+
+The descriptive statistics are not exactly similar, but come rather close in terms of mean and standard deviation. When looking at higher-order moments and the minimum and maximum, we see that there are some noticeable differences. We pay more attention to these issues when we visually inspect the synthetic data. 
+
+---
+
+__6. Create a bar plot using `geom_bar()` for each categorical variable in the data, mapping these variables to the `x`-axis with one bar per category per imputed data set.__
+
+_Hint 1:_ Within `ggmice`, set `mapping = aes(x = VARIABLE, group = .imp)`, and within `geom_bar()`, set `mapping = aes(y = ..prop..)` and `position = position_dodge()` to make sure the bars are comparable.
+
+_Hint 2:_ You can map over all categorical variables by creating a vector with the column names of all categorical variables, and using `purrr::map()` in combination with `aes_string()` and `patchwork::wrap_plots()`. 
+
+```{r}
+colnames(heart_failure)[map_lgl(heart_failure, is.factor)] %>%
+  map(~ ggmice(syn_param, mapping = aes_string(.x, group = '.imp')) +
+        geom_bar(mapping = aes(y = ..prop..),
+                 position = position_dodge2(),
+                 fill = "transparent",
+                 show.legend = FALSE)) %>% 
+  patchwork::wrap_plots()
+```
+
+For the categorical variables, we seem to be doing a good job in recreating the data *on a univariate level*. 
+
+---
+
+Now we do the same for the continuous variables, but rather than creating a bar chart, we create a density plot. 
+
+---
+
+__7. Create a density plot for each continuous variable with `ggmice()`, mapping these variables to the x-axis, using the function `geom_density()`, and make sure that each imputed set obtains its own density.__
+
+_Hint:_ The code `ggmice(syn, mapping = aes(x = VARIABLE, group = .imp))` creates a `ggmice` object per imputed set.
+
+```{r}
+colnames(heart_failure)[map_lgl(heart_failure, is.numeric)] %>%
+  map(~ ggmice(data = syn_param, 
+               mapping = aes_string(x = .x, group = '.imp')) +
+        geom_density(show.legend = F)) %>%
+  wrap_plots(ncol = 2)
+```
+
+Again, we see what we observed previously as well. For some of the continuous variables, we do a poor job in recreating a univariate distribution that is similar to the distribution of the observed variables. This gives a clear indication that something is wrong with our synthesis model. 
+
+Of course, this could have been expected, since some of the variables are highly skewed, while we impose a normal distribution on each variable. It is quite likely that we could have done a better job by using more elaborate data manipulation (e.g., transforming variables such that there distribution corresponds more closely to a normal distribution (and back-transforming afterwards)). 
+
+For now, we will try a different approach, namely a non-parametric one. 
+
+---
+
+__8. Use `mice()` to create `m = 10` synthetic data sets in an object called `syn_cart`, using the previously specified `where`-matrix, but now use `"cart"` as the imputation method.__
+
+```{r}
+syn_cart <- mice(heart_failure, 
+                 m = 10, 
+                 maxit = 1,
+                 method = "cart",
+                 where = where,
+                 printFlag = FALSE)
+```
+
+---
+
+For now, we will skip looking at the synthetic data, and continue directly to a the visual inspection of the newly created synthetic data, using the previous visualizations as before. 
+
+---
+
+__9. Create a bar plot using `geom_bar()` for each categorical variable in the data, mapping these variables to the `x`-axis with one bar per category per imputed data set.__
+
+```{r}
+colnames(heart_failure)[map_lgl(heart_failure, is.factor)] %>%
+  map(~ ggmice(syn_cart, mapping = aes_string(.x, group = '.imp')) +
+        geom_bar(mapping = aes(y = ..prop..),
+                 position = position_dodge2(),
+                 fill = "transparent",
+                 show.legend = FALSE)) %>% 
+  patchwork::wrap_plots()
+```
+
+For the categorical variables, we again seem to be doing fine: all proportions are comparable across observed and synthetic data.
+
+---
+
+Again, we do the same for the continuous variables, using a density plot. 
+
+---
+
+__10. Create a density plot for each continuous variable with `ggmice()`, mapping these variables to the x-axis, using the function `geom_density()`, and make sure that each imputed set obtains its own density. Compare these plots to the previous figures, what do you notice?__
+
+
+```{r}
+colnames(heart_failure)[map_lgl(heart_failure, is.numeric)] %>%
+  map(~ ggmice(data = syn_cart, 
+               mapping = aes_string(x = .x, group = '.imp')) +
+        geom_density(show.legend = F)) %>%
+  wrap_plots(ncol = 2)
+```
+
+We do a much better job than we did before. The synthetic data seems to closely follow the distribution of the observed data, and all irregularities in the observed data are pretty much recreated in the synthetic data, which is what we hope to see. 
+
+---
+
+There are also other, more formal ways to assess the utility of the synthetic data, although there is generally some critique against these methods [see, e.g., @drechsler_utility_psd]. Here, we will discuss the most formal utility measure, the $pMSE$, but there are others (although all utility measures tend to correlate strongly). The $pMSE$ is defined as 
+$$
+pMSE = \frac{1}{m}\sum^m_{j=1} \frac{1}{n_{obs} + n_{syn}}
+\Bigg(
+\sum^{n_{obs}}_{i=1} \Big(\hat{\pi}_i - \frac{n_{obs}}{n_{obs} + n_{syn}}\Big)^2 + 
+\sum^{n_{obs} + n_{syn}}_{i={(n_{obs} + 1)}} \Big(\hat{\pi_i} - \frac{n_{syn}}{n_{obs} + n_{syn}}\Big)^2
+\Bigg),
+$$
+which, in our case, simplifies to 
+$$
+pMSE = \frac{1}{10} \sum^{10}_{j=1} \frac{1}{`r 2 * nrow(heart_failure)`}
+\Bigg(
+\sum^{n_{obs} + n_{syn}}_{i=1} \Big(\hat{\pi}_i - \frac{1}{2}\Big)^2
+\Bigg),
+$$
+where $n_{obs}$ and $n_{syn}$ are the sample sizes of the observed and synthetic data, $\hat{\pi}_i$ is the probability of belonging to the synthetic data. Note that to calculate the this measure, each synthetic data set is stacked below the observed data, resulting in $m=10$ sets of observed and synthetic data. 
+
+---
+
+__11. Calculate the $pMSE$ for the variable `creatinine_phosphokinase` over all ten synthetic data sets, for both synthetic sets and compare the values between both synthesis methods.__
+
+_Hint:_ First, create a list with all $m=10$ synthetic data sets, then calculate the predicted probabilities for each data set, take the mean over these predicted probabilities, and subsequently, take the mean over the synthetic sets.
+
+
+```{r}
+param_dats <- complete(syn_param, "all", include = F)
+
+pi_param <- param_dats |>
+  map(~ dplyr::bind_rows(`0` = heart_failure,
+                         `1` = .x, 
+                         .id = "Synthetic") |>
+        dplyr::mutate(Synthetic = as.factor(Synthetic)) |>
+        glm(formula = Synthetic ~ creatinine_phosphokinase, family = binomial) |>
+        predict(type = "response"))
+
+cart_dats <- complete(syn_cart, "all", include = F)
+
+pi_cart <- cart_dats |>
+  map(~ dplyr::bind_rows(`0` = heart_failure,
+                         `1` = .x, 
+                         .id = "Synthetic") |>
+        dplyr::mutate(Synthetic = as.factor(Synthetic)) |>
+        glm(formula = Synthetic ~ creatinine_phosphokinase, family = binomial) |>
+        predict(type = "response"))
+
+map_dbl(pi_param, ~mean((.x - 0.5)^2)) |> 
+  mean()
+
+map_dbl(pi_cart, ~mean((.x - 0.5)^2)) |>
+  mean()
+```
+
+If you don't want to perform these calculations by hand, there is functionality in the `R`-package `synthpop` to calculate the $pMSE$ for you. 
+
+```{r}
+complete(syn_param, "all", include = FALSE) |>
+  utility.gen.list(heart_failure, 
+                   vars = "creatinine_phosphokinase",
+                   maxorder = 0, 
+                   method = "logit")
+
+complete(syn_cart, "all", include = FALSE) |>
+  utility.gen.list(heart_failure, 
+                   vars = "creatinine_phosphokinase", 
+                   maxorder = 0, 
+                   method = "logit")
+```
+
+It becomes immediately obvious that the $pMSE$ is higher for the parametrically synthesized data sets, but it is hard to interpret these numbers. To get a more insightful measure, we can take ratio of the calculated $pMSE$ over the expected $pMSE$ under the null distribution of a *correct* synthesis model (i.e., in line with the data-generating model). The $pMSE$-ratio is given by
+$$
+\begin{aligned}
+pMSE \text{ ratio } &= 
+\frac{pMSE}
+{(k-1)(\frac{n_{\text{obs}}}{n_{\text{syn}} + n_{\text{obs}}})^2(\frac{n_{\text{syn}}}{n_{\text{syn}} + n_{\text{obs}}}) / (n_{\text{obs}} + n_{\text{syn}})} \\ &=
+\frac{pMSE}{(k-1)(\frac{1}{2})^3/(n_{obs} + n_{syn})},
+\end{aligned}
+$$
+where $k$ denotes the number of predictors in the propensity score model, including the intercept.
+
+In our case, we get
+```{r}
+pMSE_param <- map_dbl(pi_param, ~mean((.x - 0.5)^2)) |> mean()
+
+pMSE_param / ((2-1)*(1/2)^3/(2*nrow(heart_failure)))
+
+pMSE_cart <- map_dbl(pi_cart, ~mean((.x - 0.5)^2)) |> mean()
+
+pMSE_cart / ((2-1)*(1/2)^3/(2*nrow(heart_failure)))
+```
+
+Ideally, the $pMSE$ ratio equals $1$, but according to the `synthpop` authors, values below $10$ are indicative of high quality synthetic data. This would indicate that both synthesis models are good models to synthesize the variable `creatinine_phosphokinase`. Yet, I would make some reservations with respect to the quality of the parametric synthesis model in this case. 
+
+---
+
+## Multivariate data utility
+
+Being able to reproduce the original distributions is a good first step, but generally the goal of synthetic data reaches beyond that. Specifically, we generally also want to reproduce the relationships between the variables in the data. The problem here is that visualizations are often most insightful to assess the quality of synthetic data, but this is quite cumbersome for multivariate relationships. Creating visualizations beyond bivariate relationships is often not feasible, whereas displaying all bivariate relationships in the data already results in $p(p-1)/2$ different figures. 
+
+In the synthetic data literature, a distinction is often made between general and specific utility measures. General utility measures assess to what extent the relationships between combinations of variables (and potential interactions between them) are preserved in the synthetic data set. These measures are often for pairs of variables, or for all combinations of variables. Specific utility measures focus, as the name already suggests, on a specific analysis. This analysis is performed on the observed data and the synthetic data, and the similarity between inferences on these data sets is quantified.
+
+### General utility measures
+
+Continuing with our $pMSE$ approach, we can inspect which interactions of variables can predict whether observations are “true” or “synthetic” using the standardized pMSE measure, similarly to what we just did using individual variables. Hence, we predict whether observations can be classified based on the interaction of two variables.
+
+Using the functionality of synthpop, we can assess the utility of all bivariate relationships by calculating the $pMSE$-ratio for each pair of variables (including their interaction).
+
+__12. Use the function `utility.gen.list()` from the `synthpop` package to calculate the $pMSE$-ratio for each pair of variables for both synthetic sets. What do you see?__
+
+```{r}
+utility.gen.list(param_dats, heart_failure)
+utility.gen.list(cart_dats, heart_failure)
+```
+
+The `CART` model was somewhat better, but the difference is relatively small. To get more insight into which variables and bivariate relationships were synthesized accordingly, and which can be improved, we can use `utility.tables.list()`.
+
+__13. Use the function `utility.tables.list()` from the `synthpop` package to calculate the $pMSE$-ratio for each pair of variables for both synthetic sets. What do you see?__
+
+```{r}
+utility.tables.list(param_dats, heart_failure,
+                    min.scale = 0, max.scale = 40)
+utility.tables.list(cart_dats, heart_failure,
+                    min.scale = 0, max.scale = 40)
+```
+
+
+Here, we finally see that our parametric synthesis model is severely flawed. Some of the $pMSE$ ratios are larger than 30, which means that these variables are close to useless when the goal is to make inferences. Our non-parametric synthesis model is doing very good. A maximum $pMSE$-ratio that is smaller than $5$ actually indicates that our synthetic data are of high quality.
+
+---
+
+### Specific utility measures
+
+Specific utility measures assess whether the same analysis on the observed and the synthetic data gives similar results. Say that we are interested in, for instance, the relationship between whether a person survives, the age of this person, whether this person has diabetes and whether or not this person smokes, including the follow-up time as a control variable in the model.
+
+---
+
+__14. Fit this model as a logistic regression model using `with()`, and pool the results over synthetic data sets. Compare the synthetic data results with the results obtained on the original data, what do you see?__
+
+```{r}
+with(syn_param, glm(deceased ~ age + diabetes + smoking + follow_up, 
+                    family = binomial)) |>
+  pool(rule = "reiter2003") |>
+  summary() |>
+  as.data.frame() |>
+  tibble::column_to_rownames('term') |>
+  round(3)
+
+with(syn_cart, glm(deceased ~ age + diabetes + smoking + follow_up, 
+                   family = binomial)) |>
+  pool(rule = "reiter2003") |>
+  summary() |>
+  as.data.frame() |>
+  tibble::column_to_rownames('term') |>
+  round(3)
+
+ glm(deceased ~ age + diabetes + smoking + follow_up, 
+     family = binomial,
+     data = heart_failure) |>
+  broom::tidy() |>
+  tibble::column_to_rownames('term') |>
+  round(3)
+```
+
+The results obtained when using solely parametric methods deviate substantially from the results obtained on the original data. When using `CART`, the results are somewhat different, but are actually quite comparable. All coefficients are estimated with a similar sign, and the deviations from the *true* relationships are small compared to the standard errors. 
+
+---
+
+# Statistical disclosure control
+
+
+In general, synthetic data protects the privacy of participants quite well, especially when all cells are imputed. Even if some observations are partly reproduced, it is hard, if not impossible, to assess which part of an observations values are real, and which are fake. Hence, with respect to individuals little can be learned from synthetic data. However, it is always good to assess whether you are not accidentally releasing an actual observation in the synthetic data. Even though an attacker is not likely to find out, participants being able to "identify" themselves in the synthetic data set may result in trust problems in the future. 
+
+
+__17. Append the original data to the synthetic data, and check whether some of the observations in the original data also occur in the synthetic data.__
+
+_Hint 1:_ You do not have to do this for the data generated with parametric methods, because these do not reproduce the original values, at least not for the continuous variables.
+
+_Hint 2:_ Start with the synthetic data, remove the variables .imp and .id, and append the original data to it. Subsequently, you can use duplicated() and which() to check whether (and if so, which) observations occur repeatedly.
+
+```{r}
+complete(syn_cart, "long") %>%
+  dplyr::select(-c(.imp, .id)) %>%
+  dplyr::bind_rows(heart_failure) %>%
+  duplicated %>%
+  which()
+```
+
+None of observations occur repeatedly, so we have not accidentally copied any of the “true” observations into the synthetic sets. This provides some safeguard against accidentally releasing sensitive information. However, if the data contains really sensitive information, this might not be enough, and one could for example check whether the synthetic data differs from the observed data along multiple dimensions (i.e., variables). Such additional checks depend on the problem at hand. Additionally, one might want to take additional measures against accidentally disclosing information about observations, for example by drawing some of the variables from a parametric distribution. Even before distribution synthetic data, think wisely about whether there may remain any disclosure risks with respect to the data that will be distributed.
+
+
+# Inferences from synthetic data
+
+Lastly, when you have obtained a synthetic data set and want to make inferences from this set, you have to be careful, because generating synthetic data adds variance to the already present sampling variance that you take into account when evaluating hypotheses. 
+Specifically, if you want to make inferences with respect to the sample of original observations, you can use unaltered analysis techniques and corresponding, conventional standard errors. 
+
+However, if you want to inferences with respect to the population the sample is taken from, you will have to adjust the standard errors, to account for the fact that the synthesis procedure adds additional variance. 
+The amount of variance that is added, depends on the number of synthetic data sets that are generated.
+Intuitively, when generating multiple synthetic data sets, the additional random noise that is induced by the synthesis cancels out, making the parameter estimates more stable. 
+
+To make valid inferences, you can use the combining rules presented by @reiter_partially_inference_2003. For scalar $Q$, with $q^{(i)}$ and $u^{(i)}$ the point estimate and the corresponding variance estimate in synthetic data set $D^{(i)}$ for $i = 1, \dots, m$, the following quantities are needed for inferences:
+
+$$
+\begin{aligned}
+\bar{q}_m &= \sum_{i=1}^m \frac{q^{(i)}}{m}, \\
+b_m &= \sum_{i=1}^m \frac{(q^{(i)} - \bar{q}_m)}{m-1}, \\
+\bar{u}_m &= \sum_{i=1}^m \frac{u^{(i)}}{m}.
+\end{aligned}
+$$
+
+The analyst can use $\bar{q}_m$ to estimate $Q$ and 
+$$
+T_p = \frac{b_m}{m} + \bar{u}_m
+$$
+to estimate the variance of $\bar{q}_m$. Then, $\frac{b_m}{m}$ is the correction factor for the additional variance due to using a finite number of imputations. 
+
+When using `pool(..., rule = "reiter2003")`, the correct pooling rules are used automatically.
+
+

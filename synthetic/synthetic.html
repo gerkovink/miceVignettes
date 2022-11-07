@@ -1,0 +1,1603 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.0.36">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Thom Volker &amp; Gerko Vink">
+
+<title>Synthetic data in R: Generating synthetic data with high utility using mice</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}
+</style>
+
+
+<script src="synthetic_files/libs/clipboard/clipboard.min.js"></script>
+<script src="synthetic_files/libs/quarto-html/quarto.js"></script>
+<script src="synthetic_files/libs/quarto-html/popper.min.js"></script>
+<script src="synthetic_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="synthetic_files/libs/quarto-html/anchor.min.js"></script>
+<link href="synthetic_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="synthetic_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="synthetic_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="synthetic_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="synthetic_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+<script src="synthetic_files/libs/kePrint-0.0.1/kePrint.js"></script>
+<link href="synthetic_files/libs/lightable-0.0.1/lightable.css" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#data-heart-failure-clinical-records" id="toc-data-heart-failure-clinical-records" class="nav-link" data-scroll-target="#data-heart-failure-clinical-records">Data: <em>Heart failure clinical records</em></a></li>
+  <li><a href="#creating-synthetic-data" id="toc-creating-synthetic-data" class="nav-link" data-scroll-target="#creating-synthetic-data">Creating synthetic data</a></li>
+  <li><a href="#synthetic-data-utility" id="toc-synthetic-data-utility" class="nav-link" data-scroll-target="#synthetic-data-utility">Synthetic data utility</a>
+  <ul class="collapse">
+  <li><a href="#univariate-data-utility" id="toc-univariate-data-utility" class="nav-link" data-scroll-target="#univariate-data-utility">Univariate data utility</a></li>
+  <li><a href="#multivariate-data-utility" id="toc-multivariate-data-utility" class="nav-link" data-scroll-target="#multivariate-data-utility">Multivariate data utility</a>
+  <ul class="collapse">
+  <li><a href="#general-utility-measures" id="toc-general-utility-measures" class="nav-link" data-scroll-target="#general-utility-measures">General utility measures</a></li>
+  <li><a href="#specific-utility-measures" id="toc-specific-utility-measures" class="nav-link" data-scroll-target="#specific-utility-measures">Specific utility measures</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#statistical-disclosure-control" id="toc-statistical-disclosure-control" class="nav-link" data-scroll-target="#statistical-disclosure-control">Statistical disclosure control</a></li>
+  <li><a href="#inferences-from-synthetic-data" id="toc-inferences-from-synthetic-data" class="nav-link" data-scroll-target="#inferences-from-synthetic-data">Inferences from synthetic data</a></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Synthetic data in <code>R</code>: Generating synthetic data with high utility using <code>mice</code></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Thom Volker &amp; Gerko Vink </p>
+          </div>
+  </div>
+    
+    
+  </div>
+  
+
+</header>
+
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>In this workshop, you will learn how to create and evaluate synthetic data in <code>R</code>. In the practical, we will work with the <code>R</code> package <code>mice</code> <span class="citation" data-cites="mice">(<a href="#ref-mice" role="doc-biblioref">van Buuren and Groothuis-Oudshoorn 2011</a>)</span>. <code>mice</code> was originally developed to impute missing data, but, as you will experience, can also be used to impute synthetic data <span class="citation" data-cites="volker_vink_synthetic_mice_2021">(see <a href="#ref-volker_vink_synthetic_mice_2021" role="doc-biblioref">Volker and Vink 2021</a>)</span>. Other alternatives to create synthetic data are, for example, the R-package <code>synthpop</code> <span class="citation" data-cites="synthpop">(<a href="#ref-synthpop" role="doc-biblioref">Nowok, Raab, and Dibben 2016</a>)</span>, or the stand-alone software <code>IVEware</code> <span class="citation" data-cites="iveware">(<a href="#ref-iveware" role="doc-biblioref"><span>“<span>IVE</span>ware: Imputation and Variance Estimation Software,”</span> n.d.</a>)</span>.</p>
+<p>In this workshop, you will (at least) use the packages <code>mice</code> <span class="citation" data-cites="mice">(<a href="#ref-mice" role="doc-biblioref">van Buuren and Groothuis-Oudshoorn 2011</a>)</span>, <code>ggmice</code> <span class="citation" data-cites="ggmice">(make sure to download the latest version from GitHub, <a href="#ref-ggmice" role="doc-biblioref">Oberman 2022</a>)</span>, <code>ggplot2</code> <span class="citation" data-cites="ggplot2">(<a href="#ref-ggplot2" role="doc-biblioref">Wickham 2016</a>)</span>, <code>patchwork</code> <span class="citation" data-cites="patchwork">(<a href="#ref-patchwork" role="doc-biblioref">Pedersen 2022</a>)</span>, <code>psych</code> <span class="citation" data-cites="psych">(<a href="#ref-psych" role="doc-biblioref">Revelle 2022</a>)</span>, <code>purrr</code> <span class="citation" data-cites="purrr">(<a href="#ref-purrr" role="doc-biblioref">Henry and Wickham 2022</a>)</span> and <code>synthpop</code> <span class="citation" data-cites="synthpop">(<a href="#ref-synthpop" role="doc-biblioref">Nowok, Raab, and Dibben 2016</a>)</span>. Make sure to load them (in case you haven’t installed them already, install them first, using <code>install.packages("package.name")</code>).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>remotes<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">"amices/mice"</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>remotes<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">"amices/ggmice"</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"ggplot2"</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"patchwork"</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"psych"</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"purrr"</span>)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"synthpop"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mice)      <span class="co"># to create the synthetic data</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggmice)    <span class="co"># to make visualizations of the synthetic data</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)   <span class="co"># required when using ggmice</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(patchwork) <span class="co"># to stitch multiple figures together</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(psych)     <span class="co"># to obtain descriptive statistics</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(purrr)     <span class="co"># to work with multiply imputed synthetic datasets</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(synthpop)  <span class="co"># to assess the utility of our synthetic data</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Additionally, make sure to set a seed, so that your results can be compared with our results.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<hr>
+</section>
+<section id="data-heart-failure-clinical-records" class="level1">
+<h1>Data: <em>Heart failure clinical records</em></h1>
+<p>The <em>Heart failure clinical records</em> data set is a medical data set from the UCI Machine Learning Repository (<a href="archive.ics.uci.edu/ml/datasets/Heart+failure+clinical+records">click here for the source</a>), originally collected by <span class="citation" data-cites="tanvir_heart_failure_2017">Ahmad (<a href="#ref-tanvir_heart_failure_2017" role="doc-biblioref">2017</a>)</span> from the Government College University, Faisalabad, Pakistan, and adapted and uploaded to the UCI MLR by <span class="citation" data-cites="chicco_ml_2020">Chicco and Jurman (<a href="#ref-chicco_ml_2020" role="doc-biblioref">2020</a>)</span>. This data set contains medical information of 299 individuals on 13 variables, and is typically used to predict whether or not a patient will survive during the follow-up period, using several biomedical predictors.</p>
+<p>If you have <code>R Studio</code> installed on your own machine, you can download the <em>cleaned</em> version of the <em>Heart failure clinical records</em> data set from my GitHub and load it as <code>heart_failure</code>, by running the following line of code.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>heart_failure <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="fu">url</span>(<span class="st">"https://thomvolker.github.io/UMCUSynthetic/data/heart_failure.RDS"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The <em>Heart failure clinical records</em> data consists of the following variables:</p>
+<ul>
+<li><code>age</code>: Age in years</li>
+<li><code>anaemia</code>: Whether the patient has a decrease of red blood cells (No/Yes)</li>
+<li><code>hypertension</code>: Whether the patient has high blood pressure (No/Yes)</li>
+<li><code>creatinine_phosphokinase</code>: Level of the creatinine phosphokinase enzyme in the blood (mcg/L)</li>
+<li><code>diabetes</code>: Whether the patient has diabetes (No/Yes)</li>
+<li><code>ejection_fraction</code>: Percentage of blood leaving the heart at each contraction</li>
+<li><code>platelets</code>: Platelets in de blood (kiloplatelets/mL)</li>
+<li><code>sex</code>: Sex (Female/Male)</li>
+<li><code>serum_creatinine</code>: Level of serum creatinine in the blood (mg/dL)</li>
+<li><code>serum_sodium</code>: Level of serum sodium in the blood (mg/dL)</li>
+<li><code>smoking</code>: Whether the patient smokes (No/Yes)</li>
+<li><code>follow_up</code>: Follow-up period (days)</li>
+<li><code>deceased</code>: Whether the patient deceased during the follow-up period</li>
+</ul>
+<p>After loading the data, it is always wise to first inspect the data, so that you have an idea what to expect.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(heart_failure)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+
+<div style="border: 1px solid #ddd; padding: 5px; overflow-x: scroll; width:100%; "><table class="table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+ <thead>
+  <tr>
+   <th style="text-align:right;"> age </th>
+   <th style="text-align:left;"> anaemia </th>
+   <th style="text-align:right;"> creatinine_phosphokinase </th>
+   <th style="text-align:left;"> diabetes </th>
+   <th style="text-align:right;"> ejection_fraction </th>
+   <th style="text-align:right;"> platelets </th>
+   <th style="text-align:right;"> serum_creatinine </th>
+   <th style="text-align:right;"> serum_sodium </th>
+   <th style="text-align:left;"> sex </th>
+   <th style="text-align:left;"> smoking </th>
+   <th style="text-align:left;"> hypertension </th>
+   <th style="text-align:left;"> deceased </th>
+   <th style="text-align:right;"> follow_up </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:right;"> 75 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 582 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 20 </td>
+   <td style="text-align:right;"> 265000 </td>
+   <td style="text-align:right;"> 1.9 </td>
+   <td style="text-align:right;"> 130 </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 4 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 55 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 7861 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 38 </td>
+   <td style="text-align:right;"> 263358 </td>
+   <td style="text-align:right;"> 1.1 </td>
+   <td style="text-align:right;"> 136 </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 6 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 65 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 146 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 20 </td>
+   <td style="text-align:right;"> 162000 </td>
+   <td style="text-align:right;"> 1.3 </td>
+   <td style="text-align:right;"> 129 </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 7 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 50 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 111 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 20 </td>
+   <td style="text-align:right;"> 210000 </td>
+   <td style="text-align:right;"> 1.9 </td>
+   <td style="text-align:right;"> 137 </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 7 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 65 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 160 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 20 </td>
+   <td style="text-align:right;"> 327000 </td>
+   <td style="text-align:right;"> 2.7 </td>
+   <td style="text-align:right;"> 116 </td>
+   <td style="text-align:left;"> Female </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 8 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 90 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 47 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 40 </td>
+   <td style="text-align:right;"> 204000 </td>
+   <td style="text-align:right;"> 2.1 </td>
+   <td style="text-align:right;"> 132 </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 8 </td>
+  </tr>
+</tbody>
+</table></div>
+
+</div>
+</div>
+<p>Additionally, we can ask for a summary of all variables, or use <code>describe()</code> from the <code>psych</code>-package to provide descriptive statistics of all variables.</p>
+<p><em>Note.</em> Make sure to install <code>psych</code> if you haven’t done so in the past.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(heart_failure)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      age        anaemia   creatinine_phosphokinase diabetes  ejection_fraction
+ Min.   :40.00   No :170   Min.   :  23.0           No :174   Min.   :14.00    
+ 1st Qu.:51.00   Yes:129   1st Qu.: 116.5           Yes:125   1st Qu.:30.00    
+ Median :60.00             Median : 250.0                     Median :38.00    
+ Mean   :60.83             Mean   : 581.8                     Mean   :38.08    
+ 3rd Qu.:70.00             3rd Qu.: 582.0                     3rd Qu.:45.00    
+ Max.   :95.00             Max.   :7861.0                     Max.   :80.00    
+   platelets      serum_creatinine  serum_sodium       sex      smoking  
+ Min.   : 25100   Min.   :0.500    Min.   :113.0   Female:105   No :203  
+ 1st Qu.:212500   1st Qu.:0.900    1st Qu.:134.0   Male  :194   Yes: 96  
+ Median :262000   Median :1.100    Median :137.0                         
+ Mean   :263358   Mean   :1.394    Mean   :136.6                         
+ 3rd Qu.:303500   3rd Qu.:1.400    3rd Qu.:140.0                         
+ Max.   :850000   Max.   :9.400    Max.   :148.0                         
+ hypertension deceased    follow_up    
+ No :194      No :203   Min.   :  4.0  
+ Yes:105      Yes: 96   1st Qu.: 73.0  
+                        Median :115.0  
+                        Mean   :130.3  
+                        3rd Qu.:203.0  
+                        Max.   :285.0  </code></pre>
+</div>
+</div>
+<p>This gives a good impression about the measurement levels of all variables, as well as the range of the possible values each variable can have.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">describe</span>(heart_failure)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+
+<div style="border: 1px solid #ddd; padding: 5px; overflow-x: scroll; width:100%; "><table class="table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+ <thead>
+  <tr>
+   <th style="text-align:left;">   </th>
+   <th style="text-align:right;"> vars </th>
+   <th style="text-align:right;"> n </th>
+   <th style="text-align:right;"> mean </th>
+   <th style="text-align:right;"> sd </th>
+   <th style="text-align:right;"> median </th>
+   <th style="text-align:right;"> trimmed </th>
+   <th style="text-align:right;"> mad </th>
+   <th style="text-align:right;"> min </th>
+   <th style="text-align:right;"> max </th>
+   <th style="text-align:right;"> range </th>
+   <th style="text-align:right;"> skew </th>
+   <th style="text-align:right;"> kurtosis </th>
+   <th style="text-align:right;"> se </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> age </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 299 </td>
+   <td style="text-align:right;"> 6.083389e+01 </td>
+   <td style="text-align:right;"> 1.189481e+01 </td>
+   <td style="text-align:right;"> 60.0 </td>
+   <td style="text-align:right;"> 6.021715e+01 </td>
+   <td style="text-align:right;"> 14.82600 </td>
+   <td style="text-align:right;"> 40.0 </td>
+   <td style="text-align:right;"> 95.0 </td>
+   <td style="text-align:right;"> 55.0 </td>
+   <td style="text-align:right;"> 0.4188266 </td>
+   <td style="text-align:right;"> -0.2204793 </td>
+   <td style="text-align:right;"> 0.6878946 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> anaemia* </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 299 </td>
+   <td style="text-align:right;"> 1.431438e+00 </td>
+   <td style="text-align:right;"> 4.961073e-01 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 1.414938e+00 </td>
+   <td style="text-align:right;"> 0.00000 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 2.0 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 0.2754750 </td>
+   <td style="text-align:right;"> -1.9305367 </td>
+   <td style="text-align:right;"> 0.0286906 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> creatinine_phosphokinase </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 299 </td>
+   <td style="text-align:right;"> 5.818395e+02 </td>
+   <td style="text-align:right;"> 9.702879e+02 </td>
+   <td style="text-align:right;"> 250.0 </td>
+   <td style="text-align:right;"> 3.654938e+02 </td>
+   <td style="text-align:right;"> 269.83320 </td>
+   <td style="text-align:right;"> 23.0 </td>
+   <td style="text-align:right;"> 7861.0 </td>
+   <td style="text-align:right;"> 7838.0 </td>
+   <td style="text-align:right;"> 4.4184296 </td>
+   <td style="text-align:right;"> 24.5254138 </td>
+   <td style="text-align:right;"> 56.1131970 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> diabetes* </td>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> 299 </td>
+   <td style="text-align:right;"> 1.418060e+00 </td>
+   <td style="text-align:right;"> 4.940671e-01 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 1.398340e+00 </td>
+   <td style="text-align:right;"> 0.00000 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 2.0 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 0.3305857 </td>
+   <td style="text-align:right;"> -1.8970241 </td>
+   <td style="text-align:right;"> 0.0285726 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> ejection_fraction </td>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 299 </td>
+   <td style="text-align:right;"> 3.808361e+01 </td>
+   <td style="text-align:right;"> 1.183484e+01 </td>
+   <td style="text-align:right;"> 38.0 </td>
+   <td style="text-align:right;"> 3.742739e+01 </td>
+   <td style="text-align:right;"> 11.86080 </td>
+   <td style="text-align:right;"> 14.0 </td>
+   <td style="text-align:right;"> 80.0 </td>
+   <td style="text-align:right;"> 66.0 </td>
+   <td style="text-align:right;"> 0.5498228 </td>
+   <td style="text-align:right;"> 0.0005484 </td>
+   <td style="text-align:right;"> 0.6844265 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> platelets </td>
+   <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 299 </td>
+   <td style="text-align:right;"> 2.633580e+05 </td>
+   <td style="text-align:right;"> 9.780424e+04 </td>
+   <td style="text-align:right;"> 262000.0 </td>
+   <td style="text-align:right;"> 2.567301e+05 </td>
+   <td style="text-align:right;"> 65234.40000 </td>
+   <td style="text-align:right;"> 25100.0 </td>
+   <td style="text-align:right;"> 850000.0 </td>
+   <td style="text-align:right;"> 824900.0 </td>
+   <td style="text-align:right;"> 1.4476814 </td>
+   <td style="text-align:right;"> 6.0252322 </td>
+   <td style="text-align:right;"> 5656.1650591 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> serum_creatinine </td>
+   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> 299 </td>
+   <td style="text-align:right;"> 1.393880e+00 </td>
+   <td style="text-align:right;"> 1.034510e+00 </td>
+   <td style="text-align:right;"> 1.1 </td>
+   <td style="text-align:right;"> 1.189295e+00 </td>
+   <td style="text-align:right;"> 0.29652 </td>
+   <td style="text-align:right;"> 0.5 </td>
+   <td style="text-align:right;"> 9.4 </td>
+   <td style="text-align:right;"> 8.9 </td>
+   <td style="text-align:right;"> 4.4113866 </td>
+   <td style="text-align:right;"> 25.1888415 </td>
+   <td style="text-align:right;"> 0.0598273 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> serum_sodium </td>
+   <td style="text-align:right;"> 8 </td>
+   <td style="text-align:right;"> 299 </td>
+   <td style="text-align:right;"> 1.366254e+02 </td>
+   <td style="text-align:right;"> 4.412477e+00 </td>
+   <td style="text-align:right;"> 137.0 </td>
+   <td style="text-align:right;"> 1.368216e+02 </td>
+   <td style="text-align:right;"> 4.44780 </td>
+   <td style="text-align:right;"> 113.0 </td>
+   <td style="text-align:right;"> 148.0 </td>
+   <td style="text-align:right;"> 35.0 </td>
+   <td style="text-align:right;"> -1.0376430 </td>
+   <td style="text-align:right;"> 3.9841899 </td>
+   <td style="text-align:right;"> 0.2551802 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> sex* </td>
+   <td style="text-align:right;"> 9 </td>
+   <td style="text-align:right;"> 299 </td>
+   <td style="text-align:right;"> 1.648829e+00 </td>
+   <td style="text-align:right;"> 4.781364e-01 </td>
+   <td style="text-align:right;"> 2.0 </td>
+   <td style="text-align:right;"> 1.684647e+00 </td>
+   <td style="text-align:right;"> 0.00000 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 2.0 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> -0.6204576 </td>
+   <td style="text-align:right;"> -1.6204183 </td>
+   <td style="text-align:right;"> 0.0276513 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> smoking* </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 299 </td>
+   <td style="text-align:right;"> 1.321070e+00 </td>
+   <td style="text-align:right;"> 4.676704e-01 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 1.278008e+00 </td>
+   <td style="text-align:right;"> 0.00000 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 2.0 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 0.7626368 </td>
+   <td style="text-align:right;"> -1.4231112 </td>
+   <td style="text-align:right;"> 0.0270461 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> hypertension* </td>
+   <td style="text-align:right;"> 11 </td>
+   <td style="text-align:right;"> 299 </td>
+   <td style="text-align:right;"> 1.351171e+00 </td>
+   <td style="text-align:right;"> 4.781364e-01 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 1.315353e+00 </td>
+   <td style="text-align:right;"> 0.00000 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 2.0 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 0.6204576 </td>
+   <td style="text-align:right;"> -1.6204183 </td>
+   <td style="text-align:right;"> 0.0276513 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> deceased* </td>
+   <td style="text-align:right;"> 12 </td>
+   <td style="text-align:right;"> 299 </td>
+   <td style="text-align:right;"> 1.321070e+00 </td>
+   <td style="text-align:right;"> 4.676704e-01 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 1.278008e+00 </td>
+   <td style="text-align:right;"> 0.00000 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 2.0 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 0.7626368 </td>
+   <td style="text-align:right;"> -1.4231112 </td>
+   <td style="text-align:right;"> 0.0270461 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> follow_up </td>
+   <td style="text-align:right;"> 13 </td>
+   <td style="text-align:right;"> 299 </td>
+   <td style="text-align:right;"> 1.302609e+02 </td>
+   <td style="text-align:right;"> 7.761421e+01 </td>
+   <td style="text-align:right;"> 115.0 </td>
+   <td style="text-align:right;"> 1.292780e+02 </td>
+   <td style="text-align:right;"> 105.26460 </td>
+   <td style="text-align:right;"> 4.0 </td>
+   <td style="text-align:right;"> 285.0 </td>
+   <td style="text-align:right;"> 281.0 </td>
+   <td style="text-align:right;"> 0.1265232 </td>
+   <td style="text-align:right;"> -1.2238150 </td>
+   <td style="text-align:right;"> 4.4885455 </td>
+  </tr>
+</tbody>
+</table></div>
+
+</div>
+</div>
+<p>The <code>describe()</code> function gives more distributional information about all variables.</p>
+<hr>
+</section>
+<section id="creating-synthetic-data" class="level1">
+<h1>Creating synthetic data</h1>
+<p>Broadly speaking, two methods for creating synthetic data can be distinguished. The first one is based on parametric imputation models, which assumes that the structure of the data is fixed, and draws synthetic values from a pre-specified probability distribution. That is, after estimating a statistical model, the synthetic data are generated from a probability distribution, without making any further use of the observed data. In general, this procedure is less likely to result in an accidental release of disclosive information. However, these parametric methods are often less capable of capturing the complex nature of real-world data sets.</p>
+<p>The subtleties of real-world data are often better reproduced with non-parametric imputation models. Using this approach, a non-parametric model is estimated, resulting in a donor pool out of which a single observation per observation and per variable is drawn. These models thus reuse the observed data to serve as synthetic data. Accordingly, much of the values that were in the observed data end up in the synthetic data. However, these observed data are generally combined in unique ways, it is generally not possible to link this information to the original respondents. The non-parametric procedures often yield better inferences, while still being able to prevent disclosure risk (although more research into measures to qualify the remaining risks is required). Therefore, this practical will showcase how to generate synthetic data using one such non-parametric method: classification and regression trees [CART; <span class="citation" data-cites="breiman_cart_1984">Breiman et al. (<a href="#ref-breiman_cart_1984" role="doc-biblioref">1984</a>)</span>].</p>
+<hr>
+<p>Now you have a feeling of what the data looks like, we will use these two different ways to create synthetic data: a fully parametric approach, in which the data are synthesized using either linear or logistic regression, and a fully non-parametric approach, in which we synthesize all data using CART.</p>
+<p>In general, <code>mice</code> proceeds as follows: from first to the last column in your data set, the given variable is synthesized based on all other variables in the data. Specifically, a model is trained on the observed data, and new values for variable <span class="math inline">\(X_j\)</span> are imputed on the basis of all other variables <span class="math inline">\(X_{-j}\)</span>. This procedure is repeated sequentially, until all variables are synthesized. In this way, the relationships between the variables are generally preserved.</p>
+<p>However, before we can use <code>mice</code> to generate synthetic data, we have to take care of some issues, because <code>mice</code> was not initially developed to create synthetic data. Specifically, we have to do two things: specify which values we want to overimpute and specify which method we want to use for the imputations.</p>
+<hr>
+<p><strong>1. Create a matrix of the same dimensions as the original data called <code>where</code>, specifying all cells as the logical operator <code>TRUE</code>.</strong></p>
+<p><em>Hint:</em> You can use the <code>mice</code> function <code>make.where()</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>where <span class="ot">&lt;-</span> <span class="fu">make.where</span>(heart_failure, <span class="st">"all"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<hr>
+<p><strong>2. Create a vector of length 13 called <code>method</code>, indicating which (parametric) method to use to synthesize each variable.</strong></p>
+<p><em>Hint:</em> You can use <code>make.method()</code> to create an initial vector with imputation methods, and replace each cell with <code>"pmm"</code> with <code>"norm"</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>method <span class="ot">&lt;-</span> <span class="fu">make.method</span>(heart_failure, <span class="at">where =</span> where)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>method[method <span class="sc">==</span> <span class="st">"pmm"</span>] <span class="ot">&lt;-</span> <span class="st">"norm"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<hr>
+<p>Now we have specified which values ought to be synthetic, and which method to use to create the synthetic values, we can actually create the synthetic data.</p>
+<hr>
+<p><strong>3. Use <code>mice()</code> to create <code>m = 10</code> synthetic data sets in an object called <code>syn_param</code>, using the previously specified <code>method</code> vector and <code>where</code>-matrix.</strong></p>
+<p><em>Hint:</em> When creating synthetic data, a single iteration is sufficient when there is no missing data, so we can set <code>maxit = 1</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>syn_param <span class="ot">&lt;-</span> <span class="fu">mice</span>(heart_failure, </span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>                  <span class="at">m =</span> <span class="dv">10</span>, </span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>                  <span class="at">maxit =</span> <span class="dv">1</span>,</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>                  <span class="at">method =</span> method,</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>                  <span class="at">where =</span> where,</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>                  <span class="at">printFlag =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<hr>
+<p>Creating the synthetic data is a piece of cake. However, after creating the synthetic data, we must assess its quality in terms of data utility and disclosure risk. Quality control is conveniently performed using visual methods, and can be done using the package <code>ggmice</code> <span class="citation" data-cites="ggmice">(<a href="#ref-ggmice" role="doc-biblioref">Oberman 2022</a>)</span>.</p>
+<hr>
+</section>
+<section id="synthetic-data-utility" class="level1">
+<h1>Synthetic data utility</h1>
+<p>The quality of synthetic data sets can be assessed on multiple levels and in multiple different ways. Starting on a univariate level, the distributions of the synthetic data sets can be compared with the distribution of the observed data. For the continuous variables, this can be done by comparing the densities of the synthetic data sets with the observed data sets. Later on, we also look at the utility of the synthetic data on a multivariate level.</p>
+<hr>
+<section id="univariate-data-utility" class="level2">
+<h2 class="anchored" data-anchor-id="univariate-data-utility">Univariate data utility</h2>
+<p><strong>4. To get an idea of whether creating the synthetic data went accordingly, compare the 10 rows of the fourth synthetic data set with the first 10 rows of the original data.</strong></p>
+<p><em>Hint:</em> You can use <code>complete(syn_param, 4)</code> to extract the fourth synthetic data set from the <code>syn_param</code> object.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">complete</span>(syn_param, <span class="dv">4</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="dv">10</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>heart_failure <span class="sc">|&gt;</span> </span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+
+<div style="border: 1px solid #ddd; padding: 5px; overflow-x: scroll; width:100%; "><table class="table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+ <thead>
+  <tr>
+   <th style="text-align:right;"> age </th>
+   <th style="text-align:left;"> anaemia </th>
+   <th style="text-align:right;"> creatinine_phosphokinase </th>
+   <th style="text-align:left;"> diabetes </th>
+   <th style="text-align:right;"> ejection_fraction </th>
+   <th style="text-align:right;"> platelets </th>
+   <th style="text-align:right;"> serum_creatinine </th>
+   <th style="text-align:right;"> serum_sodium </th>
+   <th style="text-align:left;"> sex </th>
+   <th style="text-align:left;"> smoking </th>
+   <th style="text-align:left;"> hypertension </th>
+   <th style="text-align:left;"> deceased </th>
+   <th style="text-align:right;"> follow_up </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:right;"> 75.11100 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 2060.89571 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 46.38556 </td>
+   <td style="text-align:right;"> 187131.3 </td>
+   <td style="text-align:right;"> 2.5139107 </td>
+   <td style="text-align:right;"> 130.2098 </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 31.41877 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 58.99690 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> -32.50274 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 51.22575 </td>
+   <td style="text-align:right;"> 305181.1 </td>
+   <td style="text-align:right;"> 2.1044455 </td>
+   <td style="text-align:right;"> 143.7124 </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 170.42709 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 80.99417 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 318.24894 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 17.98667 </td>
+   <td style="text-align:right;"> 211219.0 </td>
+   <td style="text-align:right;"> 1.1220858 </td>
+   <td style="text-align:right;"> 139.9554 </td>
+   <td style="text-align:left;"> Female </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> -59.47753 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 51.43676 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 86.26985 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 50.91203 </td>
+   <td style="text-align:right;"> 146552.4 </td>
+   <td style="text-align:right;"> 2.0270056 </td>
+   <td style="text-align:right;"> 136.2363 </td>
+   <td style="text-align:left;"> Female </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 125.68678 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 70.93176 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> -111.81437 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 32.73975 </td>
+   <td style="text-align:right;"> 190398.2 </td>
+   <td style="text-align:right;"> 2.9693363 </td>
+   <td style="text-align:right;"> 143.2878 </td>
+   <td style="text-align:left;"> Female </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 52.52242 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 79.29488 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> -1567.74208 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 40.78996 </td>
+   <td style="text-align:right;"> 321876.9 </td>
+   <td style="text-align:right;"> 1.7963209 </td>
+   <td style="text-align:right;"> 132.4501 </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 24.25108 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 73.92658 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 2270.81420 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 40.16377 </td>
+   <td style="text-align:right;"> 154892.2 </td>
+   <td style="text-align:right;"> 2.7336876 </td>
+   <td style="text-align:right;"> 130.2880 </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 51.66466 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 68.99649 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> -732.59574 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 57.68586 </td>
+   <td style="text-align:right;"> 236312.4 </td>
+   <td style="text-align:right;"> 3.4349341 </td>
+   <td style="text-align:right;"> 135.9754 </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> -39.48097 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 52.72441 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 984.08018 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 46.42904 </td>
+   <td style="text-align:right;"> 269673.5 </td>
+   <td style="text-align:right;"> 1.9509181 </td>
+   <td style="text-align:right;"> 136.2238 </td>
+   <td style="text-align:left;"> Female </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 86.93647 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 77.71020 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 200.34505 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 31.18680 </td>
+   <td style="text-align:right;"> 119468.1 </td>
+   <td style="text-align:right;"> 0.5534818 </td>
+   <td style="text-align:right;"> 133.4264 </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 43.17234 </td>
+  </tr>
+</tbody>
+</table></div>
+
+</div>
+<div class="cell-output-display">
+
+<div style="border: 1px solid #ddd; padding: 5px; overflow-x: scroll; width:100%; "><table class="table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+ <thead>
+  <tr>
+   <th style="text-align:right;"> age </th>
+   <th style="text-align:left;"> anaemia </th>
+   <th style="text-align:right;"> creatinine_phosphokinase </th>
+   <th style="text-align:left;"> diabetes </th>
+   <th style="text-align:right;"> ejection_fraction </th>
+   <th style="text-align:right;"> platelets </th>
+   <th style="text-align:right;"> serum_creatinine </th>
+   <th style="text-align:right;"> serum_sodium </th>
+   <th style="text-align:left;"> sex </th>
+   <th style="text-align:left;"> smoking </th>
+   <th style="text-align:left;"> hypertension </th>
+   <th style="text-align:left;"> deceased </th>
+   <th style="text-align:right;"> follow_up </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:right;"> 75 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 582 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 20 </td>
+   <td style="text-align:right;"> 265000 </td>
+   <td style="text-align:right;"> 1.9 </td>
+   <td style="text-align:right;"> 130 </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 4 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 55 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 7861 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 38 </td>
+   <td style="text-align:right;"> 263358 </td>
+   <td style="text-align:right;"> 1.1 </td>
+   <td style="text-align:right;"> 136 </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 6 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 65 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 146 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 20 </td>
+   <td style="text-align:right;"> 162000 </td>
+   <td style="text-align:right;"> 1.3 </td>
+   <td style="text-align:right;"> 129 </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 7 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 50 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 111 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 20 </td>
+   <td style="text-align:right;"> 210000 </td>
+   <td style="text-align:right;"> 1.9 </td>
+   <td style="text-align:right;"> 137 </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 7 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 65 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 160 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 20 </td>
+   <td style="text-align:right;"> 327000 </td>
+   <td style="text-align:right;"> 2.7 </td>
+   <td style="text-align:right;"> 116 </td>
+   <td style="text-align:left;"> Female </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 8 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 90 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 47 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 40 </td>
+   <td style="text-align:right;"> 204000 </td>
+   <td style="text-align:right;"> 2.1 </td>
+   <td style="text-align:right;"> 132 </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 8 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 75 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 246 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 15 </td>
+   <td style="text-align:right;"> 127000 </td>
+   <td style="text-align:right;"> 1.2 </td>
+   <td style="text-align:right;"> 137 </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 10 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 60 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 315 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 60 </td>
+   <td style="text-align:right;"> 454000 </td>
+   <td style="text-align:right;"> 1.1 </td>
+   <td style="text-align:right;"> 131 </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 10 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 65 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 157 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 65 </td>
+   <td style="text-align:right;"> 263358 </td>
+   <td style="text-align:right;"> 1.5 </td>
+   <td style="text-align:right;"> 138 </td>
+   <td style="text-align:left;"> Female </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 10 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 80 </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 123 </td>
+   <td style="text-align:left;"> No </td>
+   <td style="text-align:right;"> 35 </td>
+   <td style="text-align:right;"> 388000 </td>
+   <td style="text-align:right;"> 9.4 </td>
+   <td style="text-align:right;"> 133 </td>
+   <td style="text-align:left;"> Male </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:right;"> 10 </td>
+  </tr>
+</tbody>
+</table></div>
+
+</div>
+</div>
+<p>The first thing we can notice, is that the continuous variables are not rounded, as in the original data, which is logical, because we draw these values from a normal distribution. Apart from that, there are negative values in the synthetic version of the variable <code>creatinine_phosphokinase</code>, while the original data is strictly positive. We will come to these issues at a later moment.</p>
+<p>Apart from inspecting the data itself, we can assess distributional similarity between the observed and synthetic data. For simplicity, we will first focus on the sixth synthetic data set.</p>
+<p><strong>5. Compare the descriptive statistics from the sixth synthetic data set with the descriptive statistics from the observed data.</strong></p>
+<p><em>Hint:</em> Use the function <code>describe()</code> from the <code>psych</code> package to do this.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">complete</span>(syn_param, <span class="dv">6</span>) <span class="sc">|&gt;</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">describe</span>()</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>heart_failure <span class="sc">|&gt;</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">describe</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The descriptive statistics are not exactly similar, but come rather close in terms of mean and standard deviation. When looking at higher-order moments and the minimum and maximum, we see that there are some noticeable differences. We pay more attention to these issues when we visually inspect the synthetic data.</p>
+<hr>
+<p><strong>6. Create a bar plot using <code>geom_bar()</code> for each categorical variable in the data, mapping these variables to the <code>x</code>-axis with one bar per category per imputed data set.</strong></p>
+<p><em>Hint 1:</em> Within <code>ggmice</code>, set <code>mapping = aes(x = VARIABLE, group = .imp)</code>, and within <code>geom_bar()</code>, set <code>mapping = aes(y = ..prop..)</code> and <code>position = position_dodge()</code> to make sure the bars are comparable.</p>
+<p><em>Hint 2:</em> You can map over all categorical variables by creating a vector with the column names of all categorical variables, and using <code>purrr::map()</code> in combination with <code>aes_string()</code> and <code>patchwork::wrap_plots()</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(heart_failure)[<span class="fu">map_lgl</span>(heart_failure, is.factor)] <span class="sc">%&gt;%</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(<span class="sc">~</span> <span class="fu">ggmice</span>(syn_param, <span class="at">mapping =</span> <span class="fu">aes_string</span>(.x, <span class="at">group =</span> <span class="st">'.imp'</span>)) <span class="sc">+</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>        <span class="fu">geom_bar</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">y =</span> ..prop..),</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>                 <span class="at">position =</span> <span class="fu">position_dodge2</span>(),</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>                 <span class="at">fill =</span> <span class="st">"transparent"</span>,</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>                 <span class="at">show.legend =</span> <span class="cn">FALSE</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  patchwork<span class="sc">::</span><span class="fu">wrap_plots</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="synthetic_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>For the categorical variables, we seem to be doing a good job in recreating the data <em>on a univariate level</em>.</p>
+<hr>
+<p>Now we do the same for the continuous variables, but rather than creating a bar chart, we create a density plot.</p>
+<hr>
+<p><strong>7. Create a density plot for each continuous variable with <code>ggmice()</code>, mapping these variables to the x-axis, using the function <code>geom_density()</code>, and make sure that each imputed set obtains its own density.</strong></p>
+<p><em>Hint:</em> The code <code>ggmice(syn, mapping = aes(x = VARIABLE, group = .imp))</code> creates a <code>ggmice</code> object per imputed set.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(heart_failure)[<span class="fu">map_lgl</span>(heart_failure, is.numeric)] <span class="sc">%&gt;%</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(<span class="sc">~</span> <span class="fu">ggmice</span>(<span class="at">data =</span> syn_param, </span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>               <span class="at">mapping =</span> <span class="fu">aes_string</span>(<span class="at">x =</span> .x, <span class="at">group =</span> <span class="st">'.imp'</span>)) <span class="sc">+</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>        <span class="fu">geom_density</span>(<span class="at">show.legend =</span> F)) <span class="sc">%&gt;%</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">wrap_plots</span>(<span class="at">ncol =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="synthetic_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>Again, we see what we observed previously as well. For some of the continuous variables, we do a poor job in recreating a univariate distribution that is similar to the distribution of the observed variables. This gives a clear indication that something is wrong with our synthesis model.</p>
+<p>Of course, this could have been expected, since some of the variables are highly skewed, while we impose a normal distribution on each variable. It is quite likely that we could have done a better job by using more elaborate data manipulation (e.g., transforming variables such that there distribution corresponds more closely to a normal distribution (and back-transforming afterwards)).</p>
+<p>For now, we will try a different approach, namely a non-parametric one.</p>
+<hr>
+<p><strong>8. Use <code>mice()</code> to create <code>m = 10</code> synthetic data sets in an object called <code>syn_cart</code>, using the previously specified <code>where</code>-matrix, but now use <code>"cart"</code> as the imputation method.</strong></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>syn_cart <span class="ot">&lt;-</span> <span class="fu">mice</span>(heart_failure, </span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>                 <span class="at">m =</span> <span class="dv">10</span>, </span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>                 <span class="at">maxit =</span> <span class="dv">1</span>,</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>                 <span class="at">method =</span> <span class="st">"cart"</span>,</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>                 <span class="at">where =</span> where,</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>                 <span class="at">printFlag =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<hr>
+<p>For now, we will skip looking at the synthetic data, and continue directly to a the visual inspection of the newly created synthetic data, using the previous visualizations as before.</p>
+<hr>
+<p><strong>9. Create a bar plot using <code>geom_bar()</code> for each categorical variable in the data, mapping these variables to the <code>x</code>-axis with one bar per category per imputed data set.</strong></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(heart_failure)[<span class="fu">map_lgl</span>(heart_failure, is.factor)] <span class="sc">%&gt;%</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(<span class="sc">~</span> <span class="fu">ggmice</span>(syn_cart, <span class="at">mapping =</span> <span class="fu">aes_string</span>(.x, <span class="at">group =</span> <span class="st">'.imp'</span>)) <span class="sc">+</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>        <span class="fu">geom_bar</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">y =</span> ..prop..),</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>                 <span class="at">position =</span> <span class="fu">position_dodge2</span>(),</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>                 <span class="at">fill =</span> <span class="st">"transparent"</span>,</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>                 <span class="at">show.legend =</span> <span class="cn">FALSE</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  patchwork<span class="sc">::</span><span class="fu">wrap_plots</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="synthetic_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>For the categorical variables, we again seem to be doing fine: all proportions are comparable across observed and synthetic data.</p>
+<hr>
+<p>Again, we do the same for the continuous variables, using a density plot.</p>
+<hr>
+<p><strong>10. Create a density plot for each continuous variable with <code>ggmice()</code>, mapping these variables to the x-axis, using the function <code>geom_density()</code>, and make sure that each imputed set obtains its own density. Compare these plots to the previous figures, what do you notice?</strong></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(heart_failure)[<span class="fu">map_lgl</span>(heart_failure, is.numeric)] <span class="sc">%&gt;%</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(<span class="sc">~</span> <span class="fu">ggmice</span>(<span class="at">data =</span> syn_cart, </span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>               <span class="at">mapping =</span> <span class="fu">aes_string</span>(<span class="at">x =</span> .x, <span class="at">group =</span> <span class="st">'.imp'</span>)) <span class="sc">+</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>        <span class="fu">geom_density</span>(<span class="at">show.legend =</span> F)) <span class="sc">%&gt;%</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">wrap_plots</span>(<span class="at">ncol =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="synthetic_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>We do a much better job than we did before. The synthetic data seems to closely follow the distribution of the observed data, and all irregularities in the observed data are pretty much recreated in the synthetic data, which is what we hope to see.</p>
+<hr>
+<p>There are also other, more formal ways to assess the utility of the synthetic data, although there is generally some critique against these methods <span class="citation" data-cites="drechsler_utility_psd">(see, e.g., <a href="#ref-drechsler_utility_psd" role="doc-biblioref">Drechsler 2022</a>)</span>. Here, we will discuss the most formal utility measure, the <span class="math inline">\(pMSE\)</span>, but there are others (although all utility measures tend to correlate strongly). The <span class="math inline">\(pMSE\)</span> is defined as</p>
+<p><span class="math display">\[
+pMSE = \frac{1}{m}\sum^m_{j=1} \frac{1}{n_{obs} + n_{syn}}
+\Bigg(
+\sum^{n_{obs}}_{i=1} \Big(\hat{\pi}_i - \frac{n_{obs}}{n_{obs} + n_{syn}}\Big)^2 +
+\sum^{n_{obs} + n_{syn}}_{i={(n_{obs} + 1)}} \Big(\hat{\pi_i} - \frac{n_{syn}}{n_{obs} + n_{syn}}\Big)^2
+\Bigg),
+\]</span></p>
+<p>which, in our case, simplifies to</p>
+<p><span class="math display">\[
+pMSE = \frac{1}{10} \sum^{10}_{j=1} \frac{1}{598}
+\Bigg(
+\sum^{n_{obs} + n_{syn}}_{i=1} \Big(\hat{\pi}_i - \frac{1}{2}\Big)^2
+\Bigg),
+\]</span></p>
+<p>where <span class="math inline">\(n_{obs}\)</span> and <span class="math inline">\(n_{syn}\)</span> are the sample sizes of the observed and synthetic data, <span class="math inline">\(\hat{\pi}_i\)</span> is the probability of belonging to the synthetic data. Note that to calculate the this measure, each synthetic data set is stacked below the observed data, resulting in <span class="math inline">\(m=10\)</span> sets of observed and synthetic data.</p>
+<hr>
+<p><strong>11. Calculate the <span class="math inline">\(pMSE\)</span> for the variable <code>creatinine_phosphokinase</code> over all ten synthetic data sets, for both synthetic sets and compare the values between both synthesis methods.</strong></p>
+<p><em>Hint:</em> First, create a list with all <span class="math inline">\(m=10\)</span> synthetic data sets, then calculate the predicted probabilities for each data set, take the mean over these predicted probabilities, and subsequently, take the mean over the synthetic sets.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>param_dats <span class="ot">&lt;-</span> <span class="fu">complete</span>(syn_param, <span class="st">"all"</span>, <span class="at">include =</span> F)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>pi_param <span class="ot">&lt;-</span> param_dats <span class="sc">|&gt;</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(<span class="sc">~</span> dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(<span class="st">`</span><span class="at">0</span><span class="st">`</span> <span class="ot">=</span> heart_failure,</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>                         <span class="st">`</span><span class="at">1</span><span class="st">`</span> <span class="ot">=</span> .x, </span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>                         <span class="at">.id =</span> <span class="st">"Synthetic"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>        dplyr<span class="sc">::</span><span class="fu">mutate</span>(<span class="at">Synthetic =</span> <span class="fu">as.factor</span>(Synthetic)) <span class="sc">|&gt;</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>        <span class="fu">glm</span>(<span class="at">formula =</span> Synthetic <span class="sc">~</span> creatinine_phosphokinase, <span class="at">family =</span> binomial) <span class="sc">|&gt;</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">predict</span>(<span class="at">type =</span> <span class="st">"response"</span>))</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>cart_dats <span class="ot">&lt;-</span> <span class="fu">complete</span>(syn_cart, <span class="st">"all"</span>, <span class="at">include =</span> F)</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>pi_cart <span class="ot">&lt;-</span> cart_dats <span class="sc">|&gt;</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(<span class="sc">~</span> dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(<span class="st">`</span><span class="at">0</span><span class="st">`</span> <span class="ot">=</span> heart_failure,</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>                         <span class="st">`</span><span class="at">1</span><span class="st">`</span> <span class="ot">=</span> .x, </span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>                         <span class="at">.id =</span> <span class="st">"Synthetic"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>        dplyr<span class="sc">::</span><span class="fu">mutate</span>(<span class="at">Synthetic =</span> <span class="fu">as.factor</span>(Synthetic)) <span class="sc">|&gt;</span></span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">glm</span>(<span class="at">formula =</span> Synthetic <span class="sc">~</span> creatinine_phosphokinase, <span class="at">family =</span> binomial) <span class="sc">|&gt;</span></span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>        <span class="fu">predict</span>(<span class="at">type =</span> <span class="st">"response"</span>))</span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a><span class="fu">map_dbl</span>(pi_param, <span class="sc">~</span><span class="fu">mean</span>((.x <span class="sc">-</span> <span class="fl">0.5</span>)<span class="sc">^</span><span class="dv">2</span>)) <span class="sc">|&gt;</span> </span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mean</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.0005606145</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">map_dbl</span>(pi_cart, <span class="sc">~</span><span class="fu">mean</span>((.x <span class="sc">-</span> <span class="fl">0.5</span>)<span class="sc">^</span><span class="dv">2</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mean</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.0002329283</code></pre>
+</div>
+</div>
+<p>If you don’t want to perform these calculations by hand, there is functionality in the <code>R</code>-package <code>synthpop</code> to calculate the <span class="math inline">\(pMSE\)</span> for you.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">complete</span>(syn_param, <span class="st">"all"</span>, <span class="at">include =</span> <span class="cn">FALSE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">utility.gen.list</span>(heart_failure, </span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>                   <span class="at">vars =</span> <span class="st">"creatinine_phosphokinase"</span>,</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>                   <span class="at">maxorder =</span> <span class="dv">0</span>, </span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>                   <span class="at">method =</span> <span class="st">"logit"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Fitting syntheses: 1 2 3 4 5 6 7 8 9 10 </code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Utility score calculated by method: logit
+
+Call:
+utility.gen.list(object = complete(syn_param, "all", include = FALSE), 
+    data = heart_failure, method = "logit", maxorder = 0, vars = "creatinine_phosphokinase")
+
+Mean utility results from 10 syntheses:
+    pMSE   S_pMSE 
+0.000561 2.681980 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">complete</span>(syn_cart, <span class="st">"all"</span>, <span class="at">include =</span> <span class="cn">FALSE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">utility.gen.list</span>(heart_failure, </span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>                   <span class="at">vars =</span> <span class="st">"creatinine_phosphokinase"</span>, </span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>                   <span class="at">maxorder =</span> <span class="dv">0</span>, </span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>                   <span class="at">method =</span> <span class="st">"logit"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Fitting syntheses: 1 2 3 4 5 6 7 8 9 10 </code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Utility score calculated by method: logit
+
+Call:
+utility.gen.list(object = complete(syn_cart, "all", include = FALSE), 
+    data = heart_failure, method = "logit", maxorder = 0, vars = "creatinine_phosphokinase")
+
+Mean utility results from 10 syntheses:
+    pMSE   S_pMSE 
+0.000233 1.114329 </code></pre>
+</div>
+</div>
+<p>It becomes immediately obvious that the <span class="math inline">\(pMSE\)</span> is higher for the parametrically synthesized data sets, but it is hard to interpret these numbers. To get a more insightful measure, we can take ratio of the calculated <span class="math inline">\(pMSE\)</span> over the expected <span class="math inline">\(pMSE\)</span> under the null distribution of a <em>correct</em> synthesis model (i.e., in line with the data-generating model). The <span class="math inline">\(pMSE\)</span>-ratio is given by</p>
+<p><span class="math display">\[
+\begin{aligned}
+pMSE \text{ ratio } &amp;=
+\frac{pMSE}
+{(k-1)(\frac{n_{\text{obs}}}{n_{\text{syn}} + n_{\text{obs}}})^2(\frac{n_{\text{syn}}}{n_{\text{syn}} + n_{\text{obs}}}) / (n_{\text{obs}} + n_{\text{syn}})} \\ &amp;=
+\frac{pMSE}{(k-1)(\frac{1}{2})^3/(n_{obs} + n_{syn})},
+\end{aligned}
+\]</span></p>
+<p>where <span class="math inline">\(k\)</span> denotes the number of predictors in the propensity score model, including the intercept.</p>
+<p>In our case, we get</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>pMSE_param <span class="ot">&lt;-</span> <span class="fu">map_dbl</span>(pi_param, <span class="sc">~</span><span class="fu">mean</span>((.x <span class="sc">-</span> <span class="fl">0.5</span>)<span class="sc">^</span><span class="dv">2</span>)) <span class="sc">|&gt;</span> <span class="fu">mean</span>()</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>pMSE_param <span class="sc">/</span> ((<span class="dv">2-1</span>)<span class="sc">*</span>(<span class="dv">1</span><span class="sc">/</span><span class="dv">2</span>)<span class="sc">^</span><span class="dv">3</span><span class="sc">/</span>(<span class="dv">2</span><span class="sc">*</span><span class="fu">nrow</span>(heart_failure)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 2.68198</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>pMSE_cart <span class="ot">&lt;-</span> <span class="fu">map_dbl</span>(pi_cart, <span class="sc">~</span><span class="fu">mean</span>((.x <span class="sc">-</span> <span class="fl">0.5</span>)<span class="sc">^</span><span class="dv">2</span>)) <span class="sc">|&gt;</span> <span class="fu">mean</span>()</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>pMSE_cart <span class="sc">/</span> ((<span class="dv">2-1</span>)<span class="sc">*</span>(<span class="dv">1</span><span class="sc">/</span><span class="dv">2</span>)<span class="sc">^</span><span class="dv">3</span><span class="sc">/</span>(<span class="dv">2</span><span class="sc">*</span><span class="fu">nrow</span>(heart_failure)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1.114329</code></pre>
+</div>
+</div>
+<p>Ideally, the <span class="math inline">\(pMSE\)</span> ratio equals <span class="math inline">\(1\)</span>, but according to the <code>synthpop</code> authors, values below <span class="math inline">\(10\)</span> are indicative of high quality synthetic data. This would indicate that both synthesis models are good models to synthesize the variable <code>creatinine_phosphokinase</code>. Yet, I would make some reservations with respect to the quality of the parametric synthesis model in this case.</p>
+<hr>
+</section>
+<section id="multivariate-data-utility" class="level2">
+<h2 class="anchored" data-anchor-id="multivariate-data-utility">Multivariate data utility</h2>
+<p>Being able to reproduce the original distributions is a good first step, but generally the goal of synthetic data reaches beyond that. Specifically, we generally also want to reproduce the relationships between the variables in the data. The problem here is that visualizations are often most insightful to assess the quality of synthetic data, but this is quite cumbersome for multivariate relationships. Creating visualizations beyond bivariate relationships is often not feasible, whereas displaying all bivariate relationships in the data already results in <span class="math inline">\(p(p-1)/2\)</span> different figures.</p>
+<p>In the synthetic data literature, a distinction is often made between general and specific utility measures. General utility measures assess to what extent the relationships between combinations of variables (and potential interactions between them) are preserved in the synthetic data set. These measures are often for pairs of variables, or for all combinations of variables. Specific utility measures focus, as the name already suggests, on a specific analysis. This analysis is performed on the observed data and the synthetic data, and the similarity between inferences on these data sets is quantified.</p>
+<section id="general-utility-measures" class="level3">
+<h3 class="anchored" data-anchor-id="general-utility-measures">General utility measures</h3>
+<p>Continuing with our <span class="math inline">\(pMSE\)</span> approach, we can inspect which interactions of variables can predict whether observations are “true” or “synthetic” using the standardized pMSE measure, similarly to what we just did using individual variables. Hence, we predict whether observations can be classified based on the interaction of two variables.</p>
+<p>Using the functionality of synthpop, we can assess the utility of all bivariate relationships by calculating the <span class="math inline">\(pMSE\)</span>-ratio for each pair of variables (including their interaction).</p>
+<p><strong>12. Use the function <code>utility.gen.list()</code> from the <code>synthpop</code> package to calculate the <span class="math inline">\(pMSE\)</span>-ratio for each pair of variables for both synthetic sets. What do you see?</strong></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">utility.gen.list</span>(param_dats, heart_failure)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Running 50 permutations to get NULL utilities and printing every 10th.
+synthesis 10 20 30 40 50 
+synthesis 10 20 30 40 50 
+synthesis 10 20 30 40 50 
+synthesis 10 20 30 40 50 
+synthesis 10 20 30 40 50 
+synthesis 10 20 30 40 50 
+synthesis 10 20 30 40 50 
+synthesis 10 20 30 40 50 
+synthesis 10 20 30 40 50 
+synthesis 10 20 30 40 50 </code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Utility score calculated by method: cart
+
+Call:
+utility.gen.list(object = param_dats, data = heart_failure)
+
+Null utilities simulated from a permutation test with 50 replications.
+
+
+Mean utility results from 10 syntheses:
+    pMSE   S_pMSE 
+0.184255 3.293648 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">utility.gen.list</span>(cart_dats, heart_failure)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Running 50 permutations to get NULL utilities and printing every 10th.
+synthesis 10 20 30 40 50 
+synthesis 10 20 30 40 50 
+synthesis 10 20 30 40 50 
+synthesis 10 20 30 40 50 
+synthesis 10 20 30 40 50 
+synthesis 10 20 30 40 50 
+synthesis 10 20 30 40 50 
+synthesis 10 20 30 40 50 
+synthesis 10 20 30 40 50 
+synthesis 10 20 30 40 50 </code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Utility score calculated by method: cart
+
+Call:
+utility.gen.list(object = cart_dats, data = heart_failure)
+
+Null utilities simulated from a permutation test with 50 replications.
+
+
+Mean utility results from 10 syntheses:
+    pMSE   S_pMSE 
+0.090983 1.764989 </code></pre>
+</div>
+</div>
+<p>The <code>CART</code> model was somewhat better, but the difference is relatively small. To get more insight into which variables and bivariate relationships were synthesized accordingly, and which can be improved, we can use <code>utility.tables.list()</code>.</p>
+<p><strong>13. Use the function <code>utility.tables.list()</code> from the <code>synthpop</code> package to calculate the <span class="math inline">\(pMSE\)</span>-ratio for each pair of variables for both synthetic sets. What do you see?</strong></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">utility.tables.list</span>(param_dats, heart_failure,</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>                    <span class="at">min.scale =</span> <span class="dv">0</span>, <span class="at">max.scale =</span> <span class="dv">40</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Two-way utility: S_pMSE value plotted for 78 pairs of variables.
+
+Variable combinations with worst 5 utility scores (S_pMSE):
+     02.anaemia:03.creatinine_phosphokinase 
+                                    38.3495 
+03.creatinine_phosphokinase:11.hypertension 
+                                    37.2979 
+     03.creatinine_phosphokinase:10.smoking 
+                                    37.1664 
+         03.creatinine_phosphokinase:09.sex 
+                                    37.1005 
+    03.creatinine_phosphokinase:04.diabetes 
+                                    36.9930 </code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="synthetic_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Medians and maxima of selected utility measures for all tables compared
+       Medians  Maxima
+pMSE    0.0174  0.1123
+S_pMSE  5.5999 38.3495
+df      9.0000 24.0000
+
+For more details of all scores use print.tabs = TRUE.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">utility.tables.list</span>(cart_dats, heart_failure,</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>                    <span class="at">min.scale =</span> <span class="dv">0</span>, <span class="at">max.scale =</span> <span class="dv">40</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Two-way utility: S_pMSE value plotted for 78 pairs of variables.
+
+Variable combinations with worst 5 utility scores (S_pMSE):
+           09.sex:10.smoking     12.deceased:13.follow_up 
+                      4.5096                       2.4887 
+      09.sex:11.hypertension 06.platelets:08.serum_sodium 
+                      2.2788                       2.0382 
+          01.age:04.diabetes 
+                      1.7799 </code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="synthetic_files/figure-html/unnamed-chunk-17-2.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Medians and maxima of selected utility measures for all tables compared
+       Medians  Maxima
+pMSE    0.0021  0.0102
+S_pMSE  1.1433  4.5096
+df      9.0000 24.0000
+
+For more details of all scores use print.tabs = TRUE.</code></pre>
+</div>
+</div>
+<p>Here, we finally see that our parametric synthesis model is severely flawed. Some of the <span class="math inline">\(pMSE\)</span> ratios are larger than 30, which means that these variables are close to useless when the goal is to make inferences. Our non-parametric synthesis model is doing very good. A maximum <span class="math inline">\(pMSE\)</span>-ratio that is smaller than <span class="math inline">\(5\)</span> actually indicates that our synthetic data are of high quality.</p>
+<hr>
+</section>
+<section id="specific-utility-measures" class="level3">
+<h3 class="anchored" data-anchor-id="specific-utility-measures">Specific utility measures</h3>
+<p>Specific utility measures assess whether the same analysis on the observed and the synthetic data gives similar results. Say that we are interested in, for instance, the relationship between whether a person survives, the age of this person, whether this person has diabetes and whether or not this person smokes, including the follow-up time as a control variable in the model.</p>
+<hr>
+<p><strong>14. Fit this model as a logistic regression model using <code>with()</code>, and pool the results over synthetic data sets. Compare the synthetic data results with the results obtained on the original data, what do you see?</strong></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">with</span>(syn_param, <span class="fu">glm</span>(deceased <span class="sc">~</span> age <span class="sc">+</span> diabetes <span class="sc">+</span> smoking <span class="sc">+</span> follow_up, </span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>                    <span class="at">family =</span> binomial)) <span class="sc">|&gt;</span></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pool</span>(<span class="at">rule =</span> <span class="st">"reiter2003"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summary</span>() <span class="sc">|&gt;</span></span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.data.frame</span>() <span class="sc">|&gt;</span></span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a>  tibble<span class="sc">::</span><span class="fu">column_to_rownames</span>(<span class="st">'term'</span>) <span class="sc">|&gt;</span></span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">round</span>(<span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>            estimate std.error statistic        df p.value
+(Intercept)   -0.673     0.845    -0.797   307.391   0.426
+age            0.012     0.012     0.998   301.565   0.319
+diabetesYes    0.000     0.277    -0.002   768.556   0.999
+smokingYes    -0.103     0.280    -0.367  2582.697   0.713
+follow_up     -0.006     0.002    -3.603 10863.920   0.000</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">with</span>(syn_cart, <span class="fu">glm</span>(deceased <span class="sc">~</span> age <span class="sc">+</span> diabetes <span class="sc">+</span> smoking <span class="sc">+</span> follow_up, </span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>                   <span class="at">family =</span> binomial)) <span class="sc">|&gt;</span></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pool</span>(<span class="at">rule =</span> <span class="st">"reiter2003"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summary</span>() <span class="sc">|&gt;</span></span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.data.frame</span>() <span class="sc">|&gt;</span></span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a>  tibble<span class="sc">::</span><span class="fu">column_to_rownames</span>(<span class="st">'term'</span>) <span class="sc">|&gt;</span></span>
+<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">round</span>(<span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>            estimate std.error statistic       df p.value
+(Intercept)   -1.361     0.868    -1.568 1602.892   0.117
+age            0.031     0.013     2.465 1587.998   0.014
+diabetesYes    0.317     0.291     1.089 3357.733   0.276
+smokingYes    -0.097     0.307    -0.315 4186.269   0.752
+follow_up     -0.012     0.002    -5.401  792.157   0.000</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a> <span class="fu">glm</span>(deceased <span class="sc">~</span> age <span class="sc">+</span> diabetes <span class="sc">+</span> smoking <span class="sc">+</span> follow_up, </span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>     <span class="at">family =</span> binomial,</span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">data =</span> heart_failure) <span class="sc">|&gt;</span></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>  broom<span class="sc">::</span><span class="fu">tidy</span>() <span class="sc">|&gt;</span></span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a>  tibble<span class="sc">::</span><span class="fu">column_to_rownames</span>(<span class="st">'term'</span>) <span class="sc">|&gt;</span></span>
+<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">round</span>(<span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>            estimate std.error statistic p.value
+(Intercept)   -0.847     0.903    -0.937   0.349
+age            0.037     0.013     2.740   0.006
+diabetesYes    0.110     0.310     0.355   0.722
+smokingYes    -0.206     0.326    -0.631   0.528
+follow_up     -0.019     0.003    -7.486   0.000</code></pre>
+</div>
+</div>
+<p>The results obtained when using solely parametric methods deviate substantially from the results obtained on the original data. When using <code>CART</code>, the results are somewhat different, but are actually quite comparable. All coefficients are estimated with a similar sign, and the deviations from the <em>true</em> relationships are small compared to the standard errors.</p>
+<hr>
+</section>
+</section>
+</section>
+<section id="statistical-disclosure-control" class="level1">
+<h1>Statistical disclosure control</h1>
+<p>In general, synthetic data protects the privacy of participants quite well, especially when all cells are imputed. Even if some observations are partly reproduced, it is hard, if not impossible, to assess which part of an observations values are real, and which are fake. Hence, with respect to individuals little can be learned from synthetic data. However, it is always good to assess whether you are not accidentally releasing an actual observation in the synthetic data. Even though an attacker is not likely to find out, participants being able to “identify” themselves in the synthetic data set may result in trust problems in the future.</p>
+<p><strong>17. Append the original data to the synthetic data, and check whether some of the observations in the original data also occur in the synthetic data.</strong></p>
+<p><em>Hint 1:</em> You do not have to do this for the data generated with parametric methods, because these do not reproduce the original values, at least not for the continuous variables.</p>
+<p><em>Hint 2:</em> Start with the synthetic data, remove the variables .imp and .id, and append the original data to it. Subsequently, you can use duplicated() and which() to check whether (and if so, which) observations occur repeatedly.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="fu">complete</span>(syn_cart, <span class="st">"long"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(.imp, .id)) <span class="sc">%&gt;%</span></span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(heart_failure) <span class="sc">%&gt;%</span></span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>  duplicated <span class="sc">%&gt;%</span></span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">which</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>integer(0)</code></pre>
+</div>
+</div>
+<p>None of observations occur repeatedly, so we have not accidentally copied any of the “true” observations into the synthetic sets. This provides some safeguard against accidentally releasing sensitive information. However, if the data contains really sensitive information, this might not be enough, and one could for example check whether the synthetic data differs from the observed data along multiple dimensions (i.e., variables). Such additional checks depend on the problem at hand. Additionally, one might want to take additional measures against accidentally disclosing information about observations, for example by drawing some of the variables from a parametric distribution. Even before distribution synthetic data, think wisely about whether there may remain any disclosure risks with respect to the data that will be distributed.</p>
+</section>
+<section id="inferences-from-synthetic-data" class="level1">
+<h1>Inferences from synthetic data</h1>
+<p>Lastly, when you have obtained a synthetic data set and want to make inferences from this set, you have to be careful, because generating synthetic data adds variance to the already present sampling variance that you take into account when evaluating hypotheses. Specifically, if you want to make inferences with respect to the sample of original observations, you can use unaltered analysis techniques and corresponding, conventional standard errors.</p>
+<p>However, if you want to inferences with respect to the population the sample is taken from, you will have to adjust the standard errors, to account for the fact that the synthesis procedure adds additional variance. The amount of variance that is added, depends on the number of synthetic data sets that are generated. Intuitively, when generating multiple synthetic data sets, the additional random noise that is induced by the synthesis cancels out, making the parameter estimates more stable.</p>
+<p>To make valid inferences, you can use the combining rules presented by <span class="citation" data-cites="reiter_partially_inference_2003">Reiter (<a href="#ref-reiter_partially_inference_2003" role="doc-biblioref">2003</a>)</span>. For scalar <span class="math inline">\(Q\)</span>, with <span class="math inline">\(q^{(i)}\)</span> and <span class="math inline">\(u^{(i)}\)</span> the point estimate and the corresponding variance estimate in synthetic data set <span class="math inline">\(D^{(i)}\)</span> for <span class="math inline">\(i = 1, \dots, m\)</span>, the following quantities are needed for inferences:</p>
+<p><span class="math display">\[
+\begin{aligned}
+\bar{q}_m &amp;= \sum_{i=1}^m \frac{q^{(i)}}{m}, \\
+b_m &amp;= \sum_{i=1}^m \frac{(q^{(i)} - \bar{q}_m)}{m-1}, \\
+\bar{u}_m &amp;= \sum_{i=1}^m \frac{u^{(i)}}{m}.
+\end{aligned}
+\]</span></p>
+<p>The analyst can use <span class="math inline">\(\bar{q}_m\)</span> to estimate <span class="math inline">\(Q\)</span> and</p>
+<p><span class="math display">\[
+T_p = \frac{b_m}{m} + \bar{u}_m
+\]</span></p>
+<p>to estimate the variance of <span class="math inline">\(\bar{q}_m\)</span>. Then, <span class="math inline">\(\frac{b_m}{m}\)</span> is the correction factor for the additional variance due to using a finite number of imputations.</p>
+<p>When using <code>pool(..., rule = "reiter2003")</code>, the correct pooling rules are used automatically.</p>
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="doc-bibliography">
+<div id="ref-tanvir_heart_failure_2017" class="csl-entry" role="doc-biblioentry">
+Ahmad, Assia AND Bhatti, Tanvir AND Munir. 2017. <span>“Survival Analysis of Heart Failure Patients: A Case Study.”</span> <em>PLOS ONE</em> 12 (7): 1–8. <a href="https://doi.org/10.1371/journal.pone.0181001">https://doi.org/10.1371/journal.pone.0181001</a>.
+</div>
+<div id="ref-breiman_cart_1984" class="csl-entry" role="doc-biblioentry">
+Breiman, Leo, Jerome Friedman, Charles J Stone, and Richard A Olshen. 1984. <em>Classification and Regression Trees</em>. New York: CRC press. <a href="https://doi.org/10.1201/9781315139470">https://doi.org/10.1201/9781315139470</a>.
+</div>
+<div id="ref-chicco_ml_2020" class="csl-entry" role="doc-biblioentry">
+Chicco, Davide, and Giuseppe Jurman. 2020. <span>“Machine Learning Can Predict Survival of Patients with Heart Failure from Serum Creatinine and Ejection Fraction Alone.”</span> <em>BMC Medical Informatics and Decision Making</em> 20 (1): 16. <a href="https://doi.org/10.1186/s12911-020-1023-5">https://doi.org/10.1186/s12911-020-1023-5</a>.
+</div>
+<div id="ref-drechsler_utility_psd" class="csl-entry" role="doc-biblioentry">
+Drechsler, Jörg. 2022. <span>“Challenges in&nbsp;Measuring Utility for&nbsp;Fully Synthetic Data.”</span> In <em>Privacy in Statistical Databases</em>, edited by Josep Domingo-Ferrer and Maryline Laurent, 220–33. Cham: Springer International Publishing. <a href="https://doi.org/10.1007/978-3-031-13945-1_16">https://doi.org/10.1007/978-3-031-13945-1_16</a>.
+</div>
+<div id="ref-purrr" class="csl-entry" role="doc-biblioentry">
+Henry, Lionel, and Hadley Wickham. 2022. <em>Purrr: Functional Programming Tools</em>. <a href="https://CRAN.R-project.org/package=purrr">https://CRAN.R-project.org/package=purrr</a>.
+</div>
+<div id="ref-iveware" class="csl-entry" role="doc-biblioentry">
+<span>“<span>IVE</span>ware: Imputation and Variance Estimation Software.”</span> n.d. <a href="https://www.src.isr.umich.edu/wp-content/uploads/iveware-manual-Version-0.3.pdf">https://www.src.isr.umich.edu/wp-content/uploads/iveware-manual-Version-0.3.pdf</a>.
+</div>
+<div id="ref-synthpop" class="csl-entry" role="doc-biblioentry">
+Nowok, Beata, Gillian M. Raab, and Chris Dibben. 2016. <span>“<span class="nocase">synthpop</span>: Bespoke Creation of Synthetic Data in <span>R</span>.”</span> <em>Journal of Statistical Software</em> 74 (11): 1–26. <a href="https://doi.org/10.18637/jss.v074.i11">https://doi.org/10.18637/jss.v074.i11</a>.
+</div>
+<div id="ref-ggmice" class="csl-entry" role="doc-biblioentry">
+Oberman, Hanne. 2022. <em>Ggmice: Visualizations for ’Mice’ with ’Ggplot2’</em>. <a href="https://CRAN.R-project.org/package=ggmice">https://CRAN.R-project.org/package=ggmice</a>.
+</div>
+<div id="ref-patchwork" class="csl-entry" role="doc-biblioentry">
+Pedersen, Thomas Lin. 2022. <em>Patchwork: The Composer of Plots</em>. <a href="https://CRAN.R-project.org/package=patchwork">https://CRAN.R-project.org/package=patchwork</a>.
+</div>
+<div id="ref-reiter_partially_inference_2003" class="csl-entry" role="doc-biblioentry">
+Reiter, Jerome P. 2003. <span>“Inference for Partially Synthetic, Public Use Microdata Sets.”</span> <em>Survey Methodology</em> 29 (2): 181–88.
+</div>
+<div id="ref-psych" class="csl-entry" role="doc-biblioentry">
+Revelle, William. 2022. <em>Psych: Procedures for Psychological, Psychometric, and Personality Research</em>. Evanston, Illinois: Northwestern University. <a href="https://CRAN.R-project.org/package=psych">https://CRAN.R-project.org/package=psych</a>.
+</div>
+<div id="ref-mice" class="csl-entry" role="doc-biblioentry">
+van Buuren, Stef, and Karin Groothuis-Oudshoorn. 2011. <span>“<span class="nocase">mice</span>: Multivariate Imputation by Chained Equations in r.”</span> <em>Journal of Statistical Software</em> 45 (3): 1–67. <a href="https://doi.org/10.18637/jss.v045.i03">https://doi.org/10.18637/jss.v045.i03</a>.
+</div>
+<div id="ref-volker_vink_synthetic_mice_2021" class="csl-entry" role="doc-biblioentry">
+Volker, Thom Benjamin, and Gerko Vink. 2021. <span>“Anonymiced Shareable Data: Using Mice to Create and Analyze Multiply Imputed Synthetic Datasets.”</span> <em>Psych</em> 3 (4): 703–16. <a href="https://doi.org/10.3390/psych3040045">https://doi.org/10.3390/psych3040045</a>.
+</div>
+<div id="ref-ggplot2" class="csl-entry" role="doc-biblioentry">
+Wickham, Hadley. 2016. <em>Ggplot2: Elegant Graphics for Data Analysis</em>. Springer-Verlag New York. <a href="https://ggplot2.tidyverse.org">https://ggplot2.tidyverse.org</a>.
+</div>
+</div></section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    setTimeout(function() {
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      let href = ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const cites = ref.parentNode.getAttribute('data-cites').split(' ');
+    tippyHover(ref, function() {
+      var popup = window.document.createElement('div');
+      cites.forEach(function(cite) {
+        var citeDiv = window.document.createElement('div');
+        citeDiv.classList.add('hanging-indent');
+        citeDiv.classList.add('csl-entry');
+        var biblioDiv = window.document.getElementById('ref-' + cite);
+        if (biblioDiv) {
+          citeDiv.innerHTML = biblioDiv.innerHTML;
+        }
+        popup.appendChild(citeDiv);
+      });
+      return popup.innerHTML;
+    });
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
