@@ -13,6 +13,7 @@ We suggest going through these vignettes in the following order
 - [7. Sensitivity analysis with mice](https://www.gerkovink.com/miceVignettes/Sensitivity_analysis/Sensitivity_analysis.html)
 - [8. `futuremice`: Wrapper for parallel MICE imputation through futures](https://www.gerkovink.com/miceVignettes/futuremice/Vignette_futuremice.html)
 - [9. Multivariate PMM for imputing multiple columns simultaneously](https://www.gerkovink.com/miceVignettes/mpmm/mpmm-vignette.html)
+- [10. Generating synthetic data with high utility using `mice`](https://www.gerkovink.com/miceVignettes/synthetic/synthetic.html)
 
 ---
 
