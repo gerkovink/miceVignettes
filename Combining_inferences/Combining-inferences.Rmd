@@ -56,6 +56,7 @@ library(mice)     # Data imputation
 library(ggmice)   # Data visualization
 library(ggplot2)  # Data visualization
 library(dplyr)    # Data manipulation
+library(magrittr) # Flexible piping in R
 library(purrr)    # Flexible functional programming
 set.seed(123)
 ```
@@ -400,6 +401,6 @@ And find that indeed the overall (i.e. pooled) effect over the imputations is al
 ---
 
 
-**- End of vignette**
+**- End of practical**
 
 ---
