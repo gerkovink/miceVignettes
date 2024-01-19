@@ -13,12 +13,13 @@ In this vignette we will focus on multi-level imputation. You need to have packa
 
 ---
 
-**1. Open `R` and load the packages `mice`, `lattice` and `pan`.**
+**1. Open `R` and load the packages `mice`, `ggmice`, `ggplot2` and `pan`.**
 
 ```{r message=FALSE, warning=FALSE}
-require(mice)
-require(lattice)
-require(pan)
+library(mice)
+library(ggmice)
+library(ggplot2)
+library(pan)
 set.seed(123)
 ```
 We choose seed value `123`. This is an arbitrary value; any value would be an equally good seed value. Fixing the random seed enables you (and others) to exactly replicate anything that involves random number generators. If you set the seed in your `R` instance to `123`, you will get the exact same results and plots as we present in this document. 
@@ -95,18 +96,18 @@ The data set has 2000 rows and 7 columns (variables). The variables `extrav`, `s
 
 ---
 
-**3. As we have seen before, the function `md.pattern()` is used to display all different missing data patterns. How many different missing data patterns are present in the `popNCR` dataframe and which patterns occur most frequently in the data? Also find out how many patterns we would observe when variable `texp` (teacher experience) is not considered.**
+**3. As we have seen before, the function `md.pattern()` (or `plot_pattern()`) is used to display all different missing data patterns. How many different missing data patterns are present in the `popNCR` dataframe and which patterns occur most frequently in the data? Also find out how many patterns we would observe when variable `texp` (teacher experience) is not considered.**
 
 ```{r cache = FALSE}
-md.pattern(popNCR)
+plot_pattern(popNCR, rotate = TRUE)
 ```
-There are 32 unique patterns. The pattern where everything is observed and the pattern where only texp is missing occur most frequently.
+There are 32 unique patterns. The pattern where everything is observed and the pattern where only `texp` is missing occur most frequently.
 
-If we omit texp, then the following pattern matrix is realized:
+If we omit `texp`, then the following pattern matrix is realized:
 ```{r cache = FALSE}
-md.pattern(popNCR[ , -5])
+plot_pattern(popNCR[ , -5])
 ```
-Without texp, there are only 16 patterns.
+Without `texp`, there are only 16 patterns.
 
 ---
 
@@ -116,9 +117,20 @@ In R the missingness indicator
 ```{r cache = FALSE}
 is.na(popNCR$popular)
 ```
-is a dummy variable of the same length as `popular` with value 0 (`FALSE`) for observed pupil popularity and 1 (`TRUE`) for missing pupil popularity. A histogram can be made with the function `histogram()`. The code for a conditional histogram of `popteach` given the missingness indicator for popular is
+is a dummy variable of the same length as `popular` with value 0 (`FALSE`) for observed pupil popularity and 1 (`TRUE`) for missing pupil popularity. The code for a conditional histogram of `popteach` given the missingness indicator for popular is
 ```{r cache = FALSE}
-histogram(~ popteach | is.na(popular), data=popNCR)
+ggmice(popNCR, aes(popteach)) + 
+  geom_histogram(fill = "white") +
+  facet_wrap(~ is.na(popular))
+```
+The same figure with more informative labels is generated with
+```{r}
+ggmice(popNCR, aes(popteach)) + 
+  geom_histogram(fill = "white") +
+  facet_wrap(~ factor(
+    is.na(popular), 
+    levels = c(FALSE, TRUE), 
+    labels = c("popular observed", "popular missing")))
 ```
 
 We do see that the histogram for the missing `popular` (`TRUE`) is further to the right than the histogram for observed `popular` (`FALSE`). This would indicate a right-tailed MAR missingness. In fact this is exactly what happens, because we created the missingness in these data ourselves. But we can make it observable by examining the relations between the missingness in `popular` and the observed data in `popteach`.
@@ -128,17 +140,32 @@ We do see that the histogram for the missing `popular` (`TRUE`) is further to th
 **5. Does the missingness of the other incomplete variables depend on `popteach`? If yes, what is the direction of the relation?**
 
 ```{r cache = FALSE}
-histogram(~ popteach | is.na(sex), data = popNCR)  
+ggmice(popNCR, aes(popteach)) + 
+  geom_histogram(fill = "white") +
+  facet_wrap(~ factor(
+    is.na(sex), 
+    levels = c(FALSE, TRUE), 
+    labels = c("sex observed", "sex missing")))
 ```
 
 There seems to be a left-tailed relation between `popteach` and the missingness in `sex`.
 ```{r cache = FALSE}
-histogram(~ popteach | is.na(extrav), data = popNCR)
+ggmice(popNCR, aes(popteach)) + 
+  geom_histogram(fill = "white") +
+  facet_wrap(~ factor(
+    is.na(extrav), 
+    levels = c(FALSE, TRUE), 
+    labels = c("extrav observed", "extrav missing")))
 ```
 
 There also seems to be a left-tailed relation between `popteach` and the missingness in `extrav`.
 ```{r cache = FALSE}
-histogram(~ popteach | is.na(texp), data = popNCR)
+ggmice(popNCR, aes(popteach)) + 
+  geom_histogram(fill = "white") +
+  facet_wrap(~ factor(
+    is.na(texp), 
+    levels = c(FALSE, TRUE), 
+    labels = c("texp observed", "texp missing")))
 ```
 
 There seems to be no observable relation between `popteach` and the missingness in `texp`. It might be MCAR or even MNAR.
@@ -148,7 +175,12 @@ There seems to be no observable relation between `popteach` and the missingness 
 **6. Find out if the missingness in teacher popularity depends on pupil popularity.**
 
 ```{r cache = FALSE}
-histogram(~ popular | is.na(popteach), data = popNCR)
+ggmice(popNCR, aes(popular)) + 
+  geom_histogram(fill = "white") +
+  facet_wrap(~ factor(
+    is.na(popteach), 
+    levels = c(FALSE, TRUE), 
+    labels = c("popteach observed", "popteach missing")))
 ```
 
 Yes: there is a dependency. The relation seems to be right-tailed.
@@ -249,7 +281,7 @@ By simply forcing the algorithm to use the class variable during estimation we a
 
 **13. Inspect the trace lines for the variables `popular`, `texp` and `extrav`.**
 ```{r cache = FALSE}
-plot(imp2, c("popular", "texp", "popteach"))
+plot_trace(imp2, c("popular", "texp", "popteach"))
 ```
 
 ---
@@ -257,7 +289,7 @@ plot(imp2, c("popular", "texp", "popteach"))
 **14. Add another 10 iterations and inspect the trace lines again. What do you observe with respect to the convergence of the sampler?**
 ```{r cache = FALSE}
 imp3 <- mice.mids(imp2, maxit = 10)
-plot(imp3, c("popular", "texp", "popteach"))
+plot_trace(imp3, c("popular", "texp", "popteach"))
 ```
 
 It seems OK. Adding another 20 iterations confirms this.
@@ -270,7 +302,7 @@ plot(imp3b, c("popular", "texp", "popteach"))
 
 **Further inspection**
 
-Several plotting methods based on the package `lattice` for Trellis graphics are implemented in `mice` for imputed data.
+Several plotting methods based on the package `lattice` for Trellis graphics are implemented in `mice` for imputed data. Equivalent graphs with `ggplot2` can be created using the `ggmice` package. 
 
 ---
 
@@ -292,6 +324,26 @@ densityplot(imp2, ~ popular | .imp)
 ```
 
 The latter case results in a conditional plot (conditional on the different imputed datasets).
+
+The `ggmice` alternative for a density plot is 
+```{r}
+ggmice(imp2, aes(popular, group = .imp)) + 
+  geom_density() 
+```
+and for the conditional plot is
+```{r}
+ggmice(imp2, aes(popular)) + 
+  geom_density() +
+  facet_wrap(~.imp)
+```
+
+The full set of density plots for the variables of interest can be generated with
+```{r}
+purrr::map(c("popular", "texp", "popteach"), ~ {
+  ggmice(imp2, aes(x = .data[[.x]], group = .imp)) +
+    geom_density() 
+})
+```
 
 ---
 
@@ -382,9 +434,20 @@ imp5 <- mice(popNCR2, pred = pred, meth=meth, print = FALSE)
 ```
 
 **22. Inspect the imputations. Did the algorithm converge?**
+Plot the distribution of the imputed values for the variable `pop
 ```{r cache = FALSE}
 densityplot(imp5, ~popular, ylim = c(0, 0.35), xlim = c(-1.5, 10))
 densityplot(imp4, ~popular, ylim = c(0, 0.35), xlim = c(-1.5, 10))
+```
+
+Alternatively, these figures can be created with
+```{r}
+ggmice(imp5, aes(popular, group = .imp)) + 
+  geom_density()+
+  scale_x_continuous(limits = c(0, 10))
+ggmice(imp4, aes(popular, group = .imp)) + 
+  geom_density() +
+  scale_x_continuous(limits = c(0, 10))
 ```
 
 The imputations generated with `2l.norm` are very similar to the ones obtained by `pmm` with `class` as a fixed effect. If we plot the first imputed dataset from `imp4` and `imp5` against the original (true) data:
@@ -396,13 +459,13 @@ lines(density(complete(imp4)$popular), col = "green", lwd = 2)  #PMM
 
 We can see that the imputations are very similar. When studying the convergence
 ```{r cache = FALSE}
-plot(imp5)
+plot_trace(imp5)
 ```
 
 we conclude that it may be wise to run additional iterations. Convergence is not apparent from this plot.
 ```{r cache = FALSE}
 imp5.b <- mice.mids(imp5, maxit = 10, print = FALSE)
-plot(imp5.b)
+plot_trace(imp5.b)
 ```
 
 After running another 10 iterations, convergence is more convincing.
@@ -438,14 +501,14 @@ lines(density(complete(imp4)$popular), col = "green", lwd = 2)  #PMM
 
 We can see that the imputations are very similar. When studying the convergence
 ```{r cache = FALSE}
-plot(imp6)
+plot_trace(imp6)
 ```
 
 we conclude that it may be wise to run additional iterations. Convergence is not apparent from this plot.
 
 ```{r cache = FALSE}
 imp6.b <- mice.mids(imp5, maxit = 10, print = FALSE)
-plot(imp6.b)
+plot_trace(imp6.b)
 ```
 
 Again, after running another 10 iterations, convergence is more convincing.
@@ -484,7 +547,7 @@ densityplot(imp7)
 
 Given what we know about the missingness, the imputed densities look very reasonable.
 ```{r cache = FALSE}
-plot(imp7)
+plot_trace(imp7)
 ```
 
 Convergence has not yet been reached. more iterations are advisable.
@@ -505,7 +568,7 @@ densityplot(imp8)
 
 When looking at the convergence of `pmm`, more iterations are advisable:
 ```{r cache = FALSE}
-plot(imp8)
+plot_trace(imp8)
 ```
 
 ---
