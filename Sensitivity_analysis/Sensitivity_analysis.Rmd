@@ -23,11 +23,12 @@ The main question is how blood pressure affects mortality risk in the oldest old
 
 ---
 
-**1. Open `R` and load the packages `mice`, `lattice` and `survival`.**
+**1. Open `R` and load the packages `mice`, `ggmice`, `ggplot2`,  and `survival`.**
 ```{r message=FALSE, warning=FALSE}
 set.seed(123)
 library("mice")
-library("lattice")
+library("ggmice")
+library("ggplot2")
 library("survival")
 ```
 
@@ -58,8 +59,8 @@ There are 121 missings (`NA`’s) for `rrsyst`, 126 missings for `rrdiast`, 229 
 
 **4. Study the missing data pattern in more detail using `md.pattern()` and `fluxplot()`. The interest here focusses on imputing systolic blood pressure (`rrsyst`) and diastolic blood pressure (`rrdiast`).**
 ```{r}
-md.pattern(leiden)
-fx <- fluxplot(leiden)
+plot_pattern(leiden)
+plot_flux(leiden)
 ```
 
 Variables with higher outflux are (potentially) the more powerful predictors. Variables with higher influx depend stronger on the imputation model. When points are relatively close to the diagonal, it indicates that influx and outflux are balanced.
@@ -68,7 +69,7 @@ The variables in the upper left corner have the more complete information, so th
 
 If you’d like this information in tabulated form, you can simply ask
 ```{r}
-fx
+flux(leiden)
 ```
 
 ---

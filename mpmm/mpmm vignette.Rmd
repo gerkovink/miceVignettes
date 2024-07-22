@@ -41,13 +41,11 @@ pre { /* Code block - determines code spacing between lines */
 
 ---
 
-Multivariate predictive mean matching is a generlised of univariate predictive mean, which can impute incomplete variables simultaneously.
+Multivariate predictive mean matching is a generalized of univariate predictive mean, which can impute incomplete variables simultaneously.
 
 # Packages used
 The following packages are used.  
 ```{r message=FALSE, warning=FALSE}
-library(devtools)
-install_github("amices/mice")
 library(mice)  
 ```
 

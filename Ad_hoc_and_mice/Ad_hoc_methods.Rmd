@@ -19,11 +19,12 @@ No previous experience with `R` is required.
 
 ---
 
-**1. Open `R` and load the packages `mice` and `lattice`**
+**1. Open `R` and load the packages `mice`, `ggmice`, and `ggplot2`**
 
-```{r, message=FALSE, warning=FALSE}
-require(mice)
-require(lattice)
+```{r setup, message=FALSE, warning=FALSE}
+library(mice)
+library(ggmice)
+library(ggplot2)
 set.seed(123)
 ```
 
@@ -65,7 +66,7 @@ summary(nhanes)
 
  Check the missingness pattern for the `nhanes` dataset
 ```{r, cache = FALSE}
-md.pattern(nhanes)
+plot_pattern(nhanes)
 ```
 The missingness pattern shows that there are 27 missing values in total: 10 for `chl` , 9 for `bmi` and 8 for `hyp`. Moreover, there are thirteen completely observed rows, four rows with 1 missing, one row with 2 missings and seven rows with 3 missings. Looking at the missing data pattern is always useful (but may be difficult for datasets with many variables). It can give you an indication on how much information is missing and how the missingness is distributed.
 
@@ -110,9 +111,15 @@ fit <- with(imp, lm(age ~ bmi))
 summary(fit)
 ```
 It is clear that nothing changed, but then again this is not surprising as variable `bmi` is somewhat normally distributed and we are just adding weight to the mean.
+
+The imputed data can be inspected visually by comparing the distribution of the observed data to the distribution of the imputed data:
 ```{r}
-densityplot(nhanes$bmi)
+ggmice(nhanes, aes(bmi)) +
+        geom_histogram(fill = "white")
+ggmice(imp, aes(bmi)) + 
+        geom_histogram(fill = "white")
 ```
+Every missing instance of `bmi` is filled in with the average observed `bmi` value.
 
 ---
 
@@ -139,6 +146,13 @@ summary(fit)
 ```
 It is clear that something has changed. In fact, we extrapolated (part of) the regression model for the observed data to missing data in `bmi`. In other words; the relation (read: information) gets stronger and we've obtained more observations. 
 
+The imputed data can be inspected visually with:
+```{r}
+ggmice(imp, aes(bmi)) + 
+  geom_histogram(fill = "white")
+```
+The imputed values fall within the range of observed `bmi` values.
+
 ---
 
 
@@ -163,12 +177,19 @@ fit <- with(imp, lm(age ~ bmi))
 summary(fit)
 ```
 
+The imputed data can be inspected visually with:
+```{r}
+ggmice(imp, aes(bmi)) + 
+  geom_histogram(fill = "white")
+```
+This imputation method better reflects the uncertainty in the imputed data than previous methods.
+
 ---
 
 **12. Re-run the stochastic imputation model with seed `123` and verify if your results are the same as the ones below**
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
-imp <- mice(nhanes, method = "norm.nob", m = 1, maxit = 1, seed = 123, print=F)
+imp <- mice(nhanes, method = "norm.nob", m = 1, maxit = 1, seed = 123, print = FALSE)
 fit <- with(imp, lm(age ~ bmi))
 summary(fit)
 ```
@@ -217,7 +238,7 @@ imp$imp
 By default, `mice()` calculates five (*m* = 5) imputed data sets. In order to get the third imputed data set, use the `complete()` function
 ```{r, cache=TRUE}
 c3 <- complete(imp, 3) 
-md.pattern(c3)
+plot_pattern(c3)
 ```
 The collection of the $m$ imputed data sets can be exported by function
 `complete()` in long, broad and repeated formats. 
