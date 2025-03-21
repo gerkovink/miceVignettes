@@ -4,22 +4,23 @@ A detailed series of vignettes that walk you through solving realistic inference
 
 We suggest going through these vignettes in the following order
 
-- [1. Ad Hoc methods and the mice algorithm](https://www.gerkovink.com/miceVignettes/Ad_hoc_and_mice/Ad_hoc_methods.html)
+- [1. Ad Hoc methods and the `mice` algorithm](https://www.gerkovink.com/miceVignettes/Ad_hoc_and_mice/Ad_hoc_methods.html)
 - [2. Convergence and pooling](https://www.gerkovink.com/miceVignettes/Convergence_pooling/Convergence_and_pooling.html)
 - [3. Inspecting how the observed data and missingness are related](https://www.gerkovink.com/miceVignettes/Missingness_inspection/Missingness_inspection.html)
 - [4. Passive imputation and post-processing](https://www.gerkovink.com/miceVignettes/Passive_Post_processing/Passive_imputation_post_processing.html)
 - [5. Combining inferences](https://www.gerkovink.com/miceVignettes/Combining_inferences/Combining_inferences.html)
 - [6. Imputing multi-level data](https://www.gerkovink.com/miceVignettes/Multi_level/Multi_level_data.html)
-- [7. Sensitivity analysis with mice](https://www.gerkovink.com/miceVignettes/Sensitivity_analysis/Sensitivity_analysis.html)
-- [8. `futuremice`: Wrapper for parallel MICE imputation through futures](https://www.gerkovink.com/miceVignettes/futuremice/Vignette_futuremice.html)
+- [7. Sensitivity analysis with `mice`](https://www.gerkovink.com/miceVignettes/Sensitivity_analysis/Sensitivity_analysis.html)
+- [8. `futuremice`: Wrapper for parallel `mice` imputation through futures](https://www.gerkovink.com/miceVignettes/futuremice/Vignette_futuremice.html)
 - [9. Multivariate PMM for imputing multiple columns simultaneously](https://www.gerkovink.com/miceVignettes/mpmm/mpmm-vignette.html)
 - [10. Generating synthetic data with high utility using `mice`](https://www.gerkovink.com/miceVignettes/synthetic/synthetic.html)
+- [11. Imputation Models in `mice`](https://www.gerkovink.com/miceVignettes/Imputation_models/imputation_models.html)
 
 ---
 
 All the best,
 
-[Gerko](https://www.gerkovink.com) and [Stef](http://www.stefvanbuuren.nl)
+The `mice` team
 
 ---
 
